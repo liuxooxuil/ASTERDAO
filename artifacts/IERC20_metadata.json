@@ -1,0 +1,146 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "spender",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "approve",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "balanceOf",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "transfer",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "from",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "to",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "transferFrom",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"details": "Full-chain staking with:      - Deposit (max 5000U USD value, one stake per address until redeem)      - Referral binding (up to 16 levels, % of static yield)      - Dynamic daily yield 1%-1.5% based on pool size (total staked in contract)      - Activation: pay 1 ASTER + gas to activate 10-day earning period (stackable/extendable)      - Claim yield (with auto referral distribution)      - Exit: send 10 ASTER to contract -> get time-based % principal back, rest + fee burned to blackhole      - Effective user tracking (>=50U deposit, revoked on exit)      - All values adjustable by owner before renounce YIELD SOURCE: Funded by 5% tax \"poolBack\" sent to this contract address + any other inflows. Referral & LP/NFT shares paid from the same pool. WARNING: Complex DeFi logic. NOT AUDITED. High risk of economic exploits, math errors,           reentrancy (mitigated with guard), price manipulation (use USDT pair), etc.          Recommend professional audit + bug bounty before mainnet.          \"Auto to wallet without claim\" is difficult on-chain without keepers (gas cost).          Current: claim-on-demand + optional Chainlink Automation keeper.          LP 10% + NFT 2% shares: TODO in this version (see comments). Can be added via sub-staking.",
+			"kind": "dev",
+			"methods": {},
+			"title": "ASTERDAO Staking & Yield Contract",
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/ASTERDAO_Staking.sol": "IERC20"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts/=@openzeppelin/contracts@5.6.0/"
+		]
+	},
+	"sources": {
+		"contracts/ASTERDAO_Staking.sol": {
+			"keccak256": "0xc4d2a96c528f85314d5c511f0c033d9682dac84d9dc15ed160a14d0e9370227a",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://32bad0b1c1d2ec2b20e4321cc05473adfcab2f576f4ca25310bec7afdbe98bb0",
+				"dweb:/ipfs/QmPAwBX68jdjfUHtQ8AMPGC3cqAsfVF2Yj17QDKz9D7AMB"
+			]
+		}
+	},
+	"version": 1
+}

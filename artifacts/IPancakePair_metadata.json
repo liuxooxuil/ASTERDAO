@@ -1,0 +1,86 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"name": "getReserves",
+				"outputs": [
+					{
+						"internalType": "uint112",
+						"name": "reserve0",
+						"type": "uint112"
+					},
+					{
+						"internalType": "uint112",
+						"name": "reserve1",
+						"type": "uint112"
+					},
+					{
+						"internalType": "uint32",
+						"name": "blockTimestampLast",
+						"type": "uint32"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "token0",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"details": "ERC20 with taxes, dynamic tax on price drop, blacklist, whitelist, 60s cooldown anti-sandwich,      anti-contract trading (flashloan protection), manual trading open time, adjustable params until renounce.      Tax distribution: 20% NFT, 40% LP, 5% burn, 5% pool back, 30% marketing.      Total supply: 210,000,000  WARNING: This is a conceptual implementation. NOT AUDITED. Deploying financial contracts without professional audit (Certik, PeckShield, etc.) can result in loss of funds, exploits, or legal issues. All values adjustable by owner before renounceOwnership(). After renounce, cannot change. Integrate with PancakeSwap V2. Set pair and USDT pair after adding liquidity. Use at your own extreme risk. Not financial advice.",
+			"kind": "dev",
+			"methods": {},
+			"title": "ASTERDAO Token Contract",
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/ASTERDAO_Token.sol": "IPancakePair"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts/=@openzeppelin/contracts@5.6.0/"
+		]
+	},
+	"sources": {
+		"contracts/ASTERDAO_Token.sol": {
+			"keccak256": "0xb86a66f0c9b00dab598f28cb8ac441c1d14206a861efb92f155e9cc8a5ae3a38",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1c379f97c4e8eb6bde29eb2ac92fa96ce00a417c66571a1b420f88fc5f573f8e",
+				"dweb:/ipfs/QmTrdqUrfCYWEoHxCzw2GA1owoW2DLApTQFzTp7xHjdwFT"
+			]
+		}
+	},
+	"version": 1
+}
