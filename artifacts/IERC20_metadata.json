@@ -103,10 +103,10 @@
 			}
 		],
 		"devdoc": {
-			"details": "Full-chain staking with:      - Deposit (max 5000U USD value, one stake per address until redeem)      - Referral binding (up to 16 levels, % of static yield)      - Dynamic daily yield 1%-1.5% based on pool size (total staked in contract)      - Activation: pay 1 ASTER + gas to activate 10-day earning period (stackable/extendable)      - Claim yield (with auto referral distribution)      - Exit: send 10 ASTER to contract -> get time-based % principal back, rest + fee burned to blackhole      - Effective user tracking (>=50U deposit, revoked on exit)      - All values adjustable by owner before renounce YIELD SOURCE: Funded by 5% tax \"poolBack\" sent to this contract address + any other inflows. Referral & LP/NFT shares paid from the same pool. WARNING: Complex DeFi logic. NOT AUDITED. High risk of economic exploits, math errors,           reentrancy (mitigated with guard), price manipulation (use USDT pair), etc.          Recommend professional audit + bug bounty before mainnet.          \"Auto to wallet without claim\" is difficult on-chain without keepers (gas cost).          Current: claim-on-demand + optional Chainlink Automation keeper.          LP 10% + NFT 2% shares: TODO in this version (see comments). Can be added via sub-staking.",
+			"details": "处理“指定地址的LP在100天内撤池子，只有U没有币，币自动销毁”的需求 使用方式： 1. 项目方把指定 LP token 转入此合约（或用此合约添加流动性） 2. 设置 lockDuration = 100 days 3. 只有 owner（或指定地址）能调用 removeLiquidity 4. 如果在 lockDuration 内移除 → ASTER 部分自动销毁到 DEAD，只返还配对代币（U/BNB） 5. 超过 lockDuration 后正常移除，可同时拿到 U 和 ASTER 注意：此合约需要与 PancakeRouter 交互，实际 removeLiquidity 需要授权和路由地址。 生产环境建议使用更完善的 Timelock + Conditional 逻辑。",
 			"kind": "dev",
 			"methods": {},
-			"title": "ASTERDAO Staking & Yield Contract",
+			"title": "Conditional LP Locker for ASTERDAO",
 			"version": 1
 		},
 		"userdoc": {
@@ -117,7 +117,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/ASTERDAO_Staking.sol": "IERC20"
+			"contracts/ConditionalLPLocker.sol": "IERC20"
 		},
 		"evmVersion": "osaka",
 		"libraries": {},
@@ -133,12 +133,12 @@
 		]
 	},
 	"sources": {
-		"contracts/ASTERDAO_Staking.sol": {
-			"keccak256": "0xc4d2a96c528f85314d5c511f0c033d9682dac84d9dc15ed160a14d0e9370227a",
+		"contracts/ConditionalLPLocker.sol": {
+			"keccak256": "0xe55e79c3556b056cd69bd7a7a2fbd1f198a1a268ca95d48f71fc88a12b93df3c",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://32bad0b1c1d2ec2b20e4321cc05473adfcab2f576f4ca25310bec7afdbe98bb0",
-				"dweb:/ipfs/QmPAwBX68jdjfUHtQ8AMPGC3cqAsfVF2Yj17QDKz9D7AMB"
+				"bzz-raw://6d99c256fd1efd4262beb08e8e18f116ecb5dad38ad36ebe5ef5473c2b3d864f",
+				"dweb:/ipfs/QmX53uuZ3uALS3ZeA38pa1G8aw6gqNTNvmPYEwxfHgRnNZ"
 			]
 		}
 	},
