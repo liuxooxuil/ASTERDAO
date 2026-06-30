@@ -1,0 +1,81 @@
+{
+	"compiler": {
+		"version": "0.8.20+commit.a1b79de6"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [],
+		"devdoc": {
+			"details": "This is a HIGH-LEVEL skeleton showing structure for: - Stake ASTERDAO + BNB (gas/treasury) - Daily rewards 1%-1.5% dynamic by totalStaked pool size (for up to 10 days example) - Auto/claimable daily distribution (use Chainlink Keeper or user claim) - Time-based early exit penalty (0-10d:70%, 10-20d:80%, 20-30d:90%, 30d+:100%) - Single active stake per address (no re-stake until redeem) - Referral system up to 16 levels with % on static rewards (10%/6%/4%/2%) - 10% static weighted to LP stakers, 2% to NFT holders (loop over 30 NFTs ok) - Max stake ~5000U equivalent, effective user >50U - Bind referrer, dynamic 2 token down / 1 token back (from treasury or allocation) - All deducted penalties to blackhole - Integrate with ASTER token (0x000ae314e2a2172a039b26378814c252734f556a) for LP dividend if needed IMPORTANT: - Rewards paid FROM staking pool balance (tokens taken out of pool) - High APY unsustainable without massive continuous inflow (taxes, new stakes) - Auto daily send requires off-chain keeper (Chainlink Automation) calling distributeForUser or batch - For production: add pausable, more events, gas optimization, Merkle for referrals if needed, LP/NFT integration - MUST be audited + economic model simulation before deploy - BNB sent on stake can go to treasury for keeper gas reimbursement (off-chain) or project use User flow example: 1. User approves ASTERDAO to this contract 2. Call stake(amount, referrer) payable (send some BNB) 3. (Keeper or user) calls claimDailyReward() or distributePending() daily 4. To exit early: call redeem() - sends 10 ASTERDAO as trigger? (or just call with param), gets % principal back, rest burn",
+			"kind": "dev",
+			"methods": {},
+			"title": "ASTERDAO Staking & Referral Skeleton (NOT PRODUCTION READY)",
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/ASTERDAO_Staking_Skeleton.sol": "IASTERDAO"
+		},
+		"evmVersion": "shanghai",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts/=@openzeppelin/contracts@5.6.0/"
+		]
+	},
+	"sources": {
+		"contracts/ASTERDAO_Staking_Skeleton.sol": {
+			"keccak256": "0x35a6b0c78f49da16a99be3987feebc111a39c555576f761cf0894418d54a4bb8",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://76794ffe7977f178648f0dd20efcbe3c815ec2a0f00f8cfecfd81c5d63aad8fe",
+				"dweb:/ipfs/QmTbg1JS3ZoVDXiMrRnG6V2wW2AJezgLAUUEMRocaSE1Jg"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {
+			"keccak256": "0xba43b97fba0d32eb4254f6a5a297b39a19a247082a02d6e69349e071e2946218",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://fc980984badf3984b6303b377711220e067722bbd6a135b24669ff5069ef9f32",
+				"dweb:/ipfs/QmPHXMSXj99XjSVM21YsY6aNtLLjLVXDbyN76J5HQYvvrz"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/security/ReentrancyGuard.sol": {
+			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
+				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/token/ERC20/IERC20.sol": {
+			"keccak256": "0x287b55befed2961a7eabd7d7b1b2839cbca8a5b80ef8dcbb25ed3d4c2002c305",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://bd39944e8fc06be6dbe2dd1d8449b5336e23c6a7ba3e8e9ae5ae0f37f35283f5",
+				"dweb:/ipfs/QmPV3FGYjVwvKSgAXKUN3r9T9GwniZz83CxBpM7vyj2G53"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/utils/Context.sol": {
+			"keccak256": "0xa92e4fa126feb6907daa0513ddd816b2eb91f30a808de54f63c17d0e162c3439",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a367861093b74443b137564d3f3c472f70bcf114739e62059c939f25e315706c",
+				"dweb:/ipfs/Qmd7JMpcxD9RuQjK3uM3EzJUgSqdN8vzp8eytEiuwxQJ6h"
+			]
+		}
+	},
+	"version": 1
+}
