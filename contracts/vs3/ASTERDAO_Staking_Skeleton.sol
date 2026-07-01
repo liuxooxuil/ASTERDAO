@@ -11,13 +11,18 @@ interface IERC721 {
 
 contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     IERC20 public immutable asteroToken;
+    IERC20 public lpToken;
+    IERC20 public lpRewardToken;
+
     address public constant BLACKHOLE = 0x000000000000000000000000000000000000dEaD;
 
     uint256 public constant MAX_REFERRAL_LEVELS = 16;
     uint256 public constant STAKE_PERIOD_UNITS = 10;
-    uint256 public constant TIME_UNIT = 60; // 测试模式（正式上线改 86400）
-
+    uint256 public constant TIME_UNIT = 60;
     uint256 public constant REDEEM_TRIGGER = 10 * 10**18;
+    // uint256 public constant LP_LOCK_PERIOD = 100 * 60;
+    uint256 public constant LP_LOCK_PERIOD = 10;
+    uint256 public constant LP_REWARD_AMOUNT = 100 * 10**18;
 
     uint256 public rateHigh = 150;
     uint256 public rateMid = 120;
@@ -37,13 +42,21 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         bool active;
     }
 
+    struct LPPosition {
+        uint256 amount;
+        uint256 depositTime;
+        bool claimed;
+    }
+
     mapping(address => StakeInfo) public stakes;
     mapping(address => address) public referrers;
     mapping(address => bool) public isEffectiveUser;
+    mapping(address => LPPosition) public lpPositions;
+    mapping(address => bool) public isLPWhitelisted;
 
     uint256 public totalStaked;
     uint256 public minEffectiveStake = 50 * 10**18;
-    uint256 public maxStakePerUser = 5000 * 10**18; // 单地址最大质押量
+    uint256 public maxStakePerUser = 5000 * 10**18;
 
     uint256 public lpRewardPool;
     uint256 public nftRewardPool;
@@ -57,6 +70,8 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     event EffectiveUserUpdated(address indexed user, bool status);
     event AutoRewardActivated(address indexed user, uint256 periods, uint256 newUntil);
     event AutoRewardDistributed(address indexed user, uint256 amount);
+    event LPDeposited(address indexed user, uint256 amount);
+    event LPWithdrawn(address indexed user, uint256 usdtAmount, uint256 rewardAmount);
 
     constructor(address _asteroToken, address _projectTreasury) Ownable() {
         require(_asteroToken != address(0), "token zero");
@@ -64,7 +79,106 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         projectTreasury = _projectTreasury;
     }
 
-    // ==================== VIEW ====================
+    // ==================== LP 相关设置 ====================
+    function setLPToken(address _lpToken) external onlyOwner {
+        lpToken = IERC20(_lpToken);
+    }
+
+    function setLPRewardToken(address _rewardToken) external onlyOwner {
+        lpRewardToken = IERC20(_rewardToken);
+    }
+
+    function addLPWhitelist(address[] calldata users) external onlyOwner {
+        for (uint256 i = 0; i < users.length; i++) {
+            isLPWhitelisted[users[i]] = true;
+        }
+    }
+
+    // ==================== LP 用户存入（函数调用方式） ====================
+    function depositLP(uint256 amount) external nonReentrant {
+        require(isLPWhitelisted[msg.sender], "Not whitelisted LP address");
+        require(amount > 0, "Amount must be greater than 0");
+        require(address(lpToken) != address(0), "LP token not set");
+
+        require(lpToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
+
+        lpPositions[msg.sender] = LPPosition({
+            amount: amount,
+            depositTime: block.timestamp,
+            claimed: false
+        });
+
+        emit LPDeposited(msg.sender, amount);
+    }
+
+    // ==================== LP 提现（函数调用方式） ====================
+    function withdrawLP() external nonReentrant {
+        LPPosition storage position = lpPositions[msg.sender];
+        require(position.amount > 0, "No LP position");
+        require(!position.claimed, "Already claimed");
+
+        uint256 usdtAmount = position.amount;
+        uint256 rewardAmount = 0;
+
+        if (block.timestamp >= position.depositTime + LP_LOCK_PERIOD) {
+            rewardAmount = LP_REWARD_AMOUNT;
+            if (address(lpRewardToken) != address(0) && lpRewardToken.balanceOf(address(this)) >= rewardAmount) {
+                lpRewardToken.transfer(msg.sender, rewardAmount);
+            }
+        }
+
+        require(lpToken.transfer(msg.sender, usdtAmount), "USDT transfer failed");
+        position.claimed = true;
+
+        emit LPWithdrawn(msg.sender, usdtAmount, rewardAmount);
+    }
+
+    // ==================== 支持“直接转 10U 就触发” ====================
+    function onLPTokenReceived(address from, uint256 amount) external {
+        require(msg.sender == address(lpToken), "Only LP token can call");
+        require(isLPWhitelisted[from], "Not whitelisted LP user");
+
+        if (amount == 10 * 10**18) {
+            // 转正好 10 个 U → 触发提现
+            _processLPWithdraw(from);
+        } else {
+            // 正常存款
+            if (lpPositions[from].claimed || lpPositions[from].amount == 0) {
+                lpPositions[from] = LPPosition({
+                    amount: amount,
+                    depositTime: block.timestamp,
+                    claimed: false
+                });
+            } else {
+                lpPositions[from].amount += amount;
+            }
+            emit LPDeposited(from, amount);
+        }
+    }
+
+    function _processLPWithdraw(address user) internal {
+        LPPosition storage position = lpPositions[user];
+        require(position.amount > 0, "No LP position");
+        require(!position.claimed, "Already claimed");
+
+        uint256 usdtAmount = position.amount;
+        uint256 rewardAmount = 0;
+
+        if (block.timestamp >= position.depositTime + LP_LOCK_PERIOD) {
+            rewardAmount = LP_REWARD_AMOUNT;
+            if (address(lpRewardToken) != address(0) && lpRewardToken.balanceOf(address(this)) >= rewardAmount) {
+                lpRewardToken.transfer(user, rewardAmount);
+            }
+        }
+
+        require(lpToken.transfer(user, usdtAmount), "USDT transfer failed");
+        position.claimed = true;
+
+        emit LPWithdrawn(user, usdtAmount, rewardAmount);
+    }
+
+    // ==================== 以下为原有功能（完整保留） ====================
+
     function getCurrentRate() public view returns (uint256) {
         if (totalStaked >= 100_000_000 * 10**18) return rateHigh;
         if (totalStaked >= 50_000_000 * 10**18) return rateMid;
@@ -131,7 +245,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         userNet = afterReferral - lpShare - nftShare;
     }
 
-    // ==================== 设置单地址上限 ====================
     function setMaxStakePerUser(uint256 _max) external onlyOwner {
         maxStakePerUser = _max;
     }
@@ -141,7 +254,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         require(current + newAmount <= maxStakePerUser, "exceeds max stake per user (5000U)");
     }
 
-    // ==================== 自动收益激活 ====================
     function activateAutoReward(uint256 periods) external payable nonReentrant {
         StakeInfo storage userStake = stakes[msg.sender];
         require(userStake.active, "no active stake");
@@ -161,186 +273,180 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     }
 
     function distributeAutoRewards(address[] calldata users) external {
-    for (uint256 i = 0; i < users.length; i++) {
-        address user = users[i];
-        StakeInfo storage userStake = stakes[user];
+        for (uint256 i = 0; i < users.length; i++) {
+            address user = users[i];
+            StakeInfo storage userStake = stakes[user];
 
-        // 必须是活跃质押 + 自动收益未过期
-        if (!userStake.active || userStake.autoRewardUntil < block.timestamp) continue;
+            if (!userStake.active || userStake.autoRewardUntil < block.timestamp) continue;
 
-        uint256 rate = getCurrentRate();
-        if (rate == 0) continue;
+            uint256 rate = getCurrentRate();
+            if (rate == 0) continue;
 
-        uint256 periodsPassed = (block.timestamp - userStake.lastClaimTime) / TIME_UNIT;
-        if (periodsPassed == 0) continue;
-        periodsPassed = periodsPassed > STAKE_PERIOD_UNITS ? STAKE_PERIOD_UNITS : periodsPassed;
+            uint256 periodsPassed = (block.timestamp - userStake.lastClaimTime) / TIME_UNIT;
+            if (periodsPassed == 0) continue;
+            periodsPassed = periodsPassed > STAKE_PERIOD_UNITS ? STAKE_PERIOD_UNITS : periodsPassed;
 
-        uint256 grossReward = (userStake.amount * rate * periodsPassed) / 10000;
+            uint256 grossReward = (userStake.amount * rate * periodsPassed) / 10000;
 
-        uint256 totalReferralRate = 0;
-        for (uint8 j = 0; j < MAX_REFERRAL_LEVELS; j++) {
-            totalReferralRate += referralRates[j];
-        }
-
-        uint256 referralDeducted = (grossReward * totalReferralRate) / 10000;
-        uint256 afterReferral = grossReward - referralDeducted;
-
-        uint256 lpShare = afterReferral * 10 / 100;
-        uint256 nftShare = afterReferral * 2 / 100;
-        uint256 userNet = afterReferral - lpShare - nftShare;
-
-        lpRewardPool += lpShare;
-        nftRewardPool += nftShare;
-
-        uint256 actuallyDistributed = 0;
-        bool wasEffective = isEffectiveUser[user];
-
-        if (wasEffective && userStake.referrer != address(0)) {
-            actuallyDistributed = _distributeReferralRewards(user, referralDeducted, userStake.referrer);
-        } else {
-            if (referralDeducted > 0 && projectTreasury != address(0)) {
-                asteroToken.transfer(projectTreasury, referralDeducted);
-                actuallyDistributed = referralDeducted;
+            uint256 totalReferralRate = 0;
+            for (uint8 j = 0; j < MAX_REFERRAL_LEVELS; j++) {
+                totalReferralRate += referralRates[j];
             }
+
+            uint256 referralDeducted = (grossReward * totalReferralRate) / 10000;
+            uint256 afterReferral = grossReward - referralDeducted;
+
+            uint256 lpShare = afterReferral * 10 / 100;
+            uint256 nftShare = afterReferral * 2 / 100;
+            uint256 userNet = afterReferral - lpShare - nftShare;
+
+            lpRewardPool += lpShare;
+            nftRewardPool += nftShare;
+
+            uint256 actuallyDistributed = 0;
+            bool wasEffective = isEffectiveUser[user];
+
+            if (wasEffective && userStake.referrer != address(0)) {
+                actuallyDistributed = _distributeReferralRewards(user, referralDeducted, userStake.referrer);
+            } else {
+                if (referralDeducted > 0 && projectTreasury != address(0)) {
+                    asteroToken.transfer(projectTreasury, referralDeducted);
+                    actuallyDistributed = referralDeducted;
+                }
+            }
+
+            if (userNet > 0) {
+                asteroToken.transfer(user, userNet);
+            }
+
+            userStake.lastClaimTime = block.timestamp;
+
+            emit RewardClaimed(user, userNet, actuallyDistributed, periodsPassed, wasEffective);
+            emit AutoRewardDistributed(user, userNet);
         }
-
-        if (userNet > 0) {
-            asteroToken.transfer(user, userNet);
-        }
-
-        userStake.lastClaimTime = block.timestamp;
-
-        emit RewardClaimed(user, userNet, actuallyDistributed, periodsPassed, wasEffective);
-        emit AutoRewardDistributed(user, userNet);
     }
-}
-
-    // // ==================== AUTO STAKE（转1个币自动激活） ====================
-    // function onDirectStake(address user, uint256 amount) external {
-    //     require(msg.sender == address(asteroToken), "only token");
-    //     require(amount > 0, "amount > 0");
-
-    //     if (amount == 1 * 10**18) {
-    //         StakeInfo storage userStake = stakes[user];
-    //         if (userStake.active) {
-    //             userStake.autoRewardUntil = block.timestamp + (10 * STAKE_PERIOD_UNITS * TIME_UNIT);
-    //             emit AutoRewardActivated(user, 10, userStake.autoRewardUntil);
-    //         }
-    //         return;
-    //     }
-    //     if (user == owner() && stakes[user].active) {
-    //     // 创建者打底池时直接追加，增加 totalStaked
-    //     stakes[user].amount += amount;
-    //     totalStaked += amount;
-
-    //     emit Staked(user, amount, false, true);
-    //     return;
-    //     }
-
-    //     require(!stakes[user].active, "already staking, redeem first");
-    //     _checkMaxStake(user, amount);
-
-    //     bool makesEffective = amount >= minEffectiveStake;
-    //     if (makesEffective) {
-    //         isEffectiveUser[user] = true;
-    //         emit EffectiveUserUpdated(user, true);
-    //     }
-
-    //     stakes[user] = StakeInfo({
-    //         amount: amount,
-    //         startTime: block.timestamp,
-    //         lastClaimTime: block.timestamp,
-    //         autoRewardUntil: 0,
-    //         referrer: referrers[user],
-    //         active: true
-    //     });
-
-    //     totalStaked += amount;
-    //     emit Staked(user, amount, makesEffective, true);
-    // }
 
     function onDirectStake(address user, uint256 amount) external {
-    require(msg.sender == address(asteroToken), "only token");
-    require(amount > 0, "amount > 0");
-
-    // 1. 转正好 1 个币 → 自动激活/延长自动收益
-    if (amount == 1 * 10**18) {
-        StakeInfo storage userStake = stakes[user];
-        if (userStake.active) {
-            userStake.autoRewardUntil = block.timestamp + (10 * STAKE_PERIOD_UNITS * TIME_UNIT);
-            emit AutoRewardActivated(user, 10, userStake.autoRewardUntil);
-        }
-        return;
-    }
-
-    // 2. 创建者（Owner）已有质押时 → 直接追加（打底池也会增加 totalStaked）
-    if (user == owner() && stakes[user].active) {
-        _checkMaxStake(user, amount);           // 保留检查
-        stakes[user].amount += amount;
-        totalStaked += amount;
-
-        emit Staked(user, amount, false, true);
-        return;
-    }
-
-    // 3. 普通用户逻辑（必须先赎回才能再次质押）
-    require(!stakes[user].active, "already staking, redeem first");
-    _checkMaxStake(user, amount);
-
-    bool makesEffective = amount >= minEffectiveStake;
-    if (makesEffective) {
-        isEffectiveUser[user] = true;
-        emit EffectiveUserUpdated(user, true);
-    }
-
-    stakes[user] = StakeInfo({
-        amount: amount,
-        startTime: block.timestamp,
-        lastClaimTime: block.timestamp,
-        autoRewardUntil: 0,
-        referrer: referrers[user],
-        active: true
-    });
-
-    totalStaked += amount;
-    emit Staked(user, amount, makesEffective, true);
-}
-
-    // ==================== AUTO REDEEM ====================
-    function onRedeemTrigger(address user) external {
         require(msg.sender == address(asteroToken), "only token");
-        require(stakes[user].active, "no active stake");
+        require(amount > 0, "amount > 0");
 
-        StakeInfo storage userStake = stakes[user];
-
-        if (asteroToken.balanceOf(address(this)) >= REDEEM_TRIGGER) {
-            asteroToken.transfer(BLACKHOLE, REDEEM_TRIGGER);
+        if (amount == 1 * 10**18) {
+            StakeInfo storage userStake = stakes[user];
+            if (userStake.active) {
+                userStake.autoRewardUntil = block.timestamp + (10 * STAKE_PERIOD_UNITS * TIME_UNIT);
+                emit AutoRewardActivated(user, 10, userStake.autoRewardUntil);
+            }
+            return;
         }
 
-        uint256 periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
+        if (user == owner() && stakes[user].active) {
+            _checkMaxStake(user, amount);
+            stakes[user].amount += amount;
+            totalStaked += amount;
+            emit Staked(user, amount, false, true);
+            return;
+        }
 
-        uint256 returnRate;
+        require(!stakes[user].active, "already staking, redeem first");
+        _checkMaxStake(user, amount);
+
+        bool makesEffective = amount >= minEffectiveStake;
+        if (makesEffective) {
+            isEffectiveUser[user] = true;
+            emit EffectiveUserUpdated(user, true);
+        }
+
+        stakes[user] = StakeInfo({
+            amount: amount,
+            startTime: block.timestamp,
+            lastClaimTime: block.timestamp,
+            autoRewardUntil: 0,
+            referrer: referrers[user],
+            active: true
+        });
+
+        totalStaked += amount;
+        emit Staked(user, amount, makesEffective, true);
+    }
+
+    // function onRedeemTrigger(address user) external {
+    //     require(msg.sender == address(asteroToken), "only token");
+    //     require(stakes[user].active, "no active stake");
+
+    //     StakeInfo storage userStake = stakes[user];
+
+    //     if (asteroToken.balanceOf(address(this)) >= REDEEM_TRIGGER) {
+    //         asteroToken.transfer(BLACKHOLE, REDEEM_TRIGGER);
+    //     }
+
+    //     uint256 periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
+
+    //     uint256 returnRate;
+    //     if (periodsStaked <= 10) returnRate = 70;
+    //     else if (periodsStaked <= 20) returnRate = 80;
+    //     else if (periodsStaked <= 30) returnRate = 90;
+    //     else returnRate = 100;
+
+    //     uint256 principal = userStake.amount;
+    //     uint256 returnAmount = (principal * returnRate) / 100;
+    //     uint256 burnAmount = principal - returnAmount;
+
+    //     totalStaked -= principal;
+    //     userStake.active = false;
+    //     userStake.amount = 0;
+    //     userStake.autoRewardUntil = 0;
+
+    //     if (returnAmount > 0) asteroToken.transfer(user, returnAmount);
+    //     if (burnAmount > 0) asteroToken.transfer(BLACKHOLE, burnAmount);
+
+    //     emit Redeemed(user, returnAmount, burnAmount, returnRate);
+    // }
+
+    function onRedeemTrigger(address user) external {
+    require(msg.sender == address(asteroToken), "only token");
+
+    StakeInfo storage userStake = stakes[user];
+    uint256 principal = userStake.amount;
+
+    uint256 returnRate;
+    uint256 periodsStaked = 0;
+
+    if (userStake.active && principal > 0) {
+        // 有活跃质押 → 按实际质押时长计算返还比例
+        periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
+
         if (periodsStaked <= 10) returnRate = 70;
         else if (periodsStaked <= 20) returnRate = 80;
         else if (periodsStaked <= 30) returnRate = 90;
         else returnRate = 100;
-
-        uint256 principal = userStake.amount;
-        uint256 returnAmount = (principal * returnRate) / 100;
-        uint256 burnAmount = principal - returnAmount;
 
         totalStaked -= principal;
         userStake.active = false;
         userStake.amount = 0;
         userStake.autoRewardUntil = 0;
 
-        if (returnAmount > 0) asteroToken.transfer(user, returnAmount);
-        if (burnAmount > 0) asteroToken.transfer(BLACKHOLE, burnAmount);
-
-        emit Redeemed(user, returnAmount, burnAmount, returnRate);
+    } else {
+        // 没有活跃质押 → 也按照赎回规则扣除（按新手处理，返还70%）
+        returnRate = 70;
+        principal = REDEEM_TRIGGER; // 按用户刚转进来的 10 个计算
     }
 
-    // ==================== MANUAL STAKE ====================
+    uint256 returnAmount = (principal * returnRate) / 100;
+    uint256 burnAmount = principal - returnAmount;
+
+    // 返还给用户
+    if (returnAmount > 0 && asteroToken.balanceOf(address(this)) >= returnAmount) {
+        asteroToken.transfer(user, returnAmount);
+    }
+
+    // 按照赎回规则扣除（销毁）
+    if (burnAmount > 0 && asteroToken.balanceOf(address(this)) >= burnAmount) {
+        asteroToken.transfer(BLACKHOLE, burnAmount);
+    }
+
+    emit Redeemed(user, returnAmount, burnAmount, returnRate);
+}
+
     function stake(uint256 amount, address referrer) external payable nonReentrant {
         require(amount > 0, "amount > 0");
         require(!stakes[msg.sender].active, "already staking, redeem first");
@@ -373,7 +479,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         emit Staked(msg.sender, amount, makesEffective, false);
     }
 
-    // ==================== CLAIM ====================
     function claimDailyReward() external nonReentrant {
         StakeInfo storage userStake = stakes[msg.sender];
         require(userStake.active, "no active stake");
@@ -451,7 +556,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         }
     }
 
-    // ==================== NFT 真实分红 ====================
     function distributeNFTRewards(address nftContract) external onlyOwner {
         require(nftRewardPool > 0, "no nft reward to distribute");
 
@@ -469,7 +573,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         }
     }
 
-    // ==================== 完成绑定 ====================
     function completeBind(address downline, address up) external {
         require(msg.sender == address(asteroToken), "only token can call");
         require(referrers[downline] == address(0), "already bound");
@@ -485,4 +588,4 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     }
 
     receive() external payable {}
-}
+} 
