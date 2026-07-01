@@ -31,6 +31,50 @@
 						"type": "address"
 					},
 					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "periods",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "newUntil",
+						"type": "uint256"
+					}
+				],
+				"name": "AutoRewardActivated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "AutoRewardDistributed",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					},
+					{
 						"indexed": true,
 						"internalType": "address",
 						"name": "referrer",
@@ -274,6 +318,19 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "periods",
+						"type": "uint256"
+					}
+				],
+				"name": "activateAutoReward",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
 				"inputs": [],
 				"name": "asteroToken",
 				"outputs": [
@@ -284,19 +341,6 @@
 					}
 				],
 				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "referrer",
-						"type": "address"
-					}
-				],
-				"name": "bindReferrer",
-				"outputs": [],
-				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -320,6 +364,32 @@
 					}
 				],
 				"name": "completeBind",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address[]",
+						"name": "users",
+						"type": "address[]"
+					}
+				],
+				"name": "distributeAutoRewards",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "nftContract",
+						"type": "address"
+					}
+				],
+				"name": "distributeNFTRewards",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -433,6 +503,19 @@
 			{
 				"inputs": [],
 				"name": "lpRewardPool",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "maxStakePerUser",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -653,47 +736,11 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "_amount",
+						"name": "_max",
 						"type": "uint256"
 					}
 				],
-				"name": "setMinEffectiveStake",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_addr",
-						"type": "address"
-					}
-				],
-				"name": "setProjectTreasury",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "_high",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_mid",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_low",
-						"type": "uint256"
-					}
-				],
-				"name": "setRates",
+				"name": "setMaxStakePerUser",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -742,6 +789,11 @@
 						"type": "uint256"
 					},
 					{
+						"internalType": "uint256",
+						"name": "autoRewardUntil",
+						"type": "uint256"
+					},
+					{
 						"internalType": "address",
 						"name": "referrer",
 						"type": "address"
@@ -782,19 +834,6 @@
 				"type": "function"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "withdrawBNB",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
 				"stateMutability": "payable",
 				"type": "receive"
 			}
@@ -822,7 +861,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/vs2/ASTERDAO_Staking_Skeleton.sol": "ASTERDAOStaking"
+			"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": "ASTERDAOStaking"
 		},
 		"evmVersion": "shanghai",
 		"libraries": {},
@@ -838,12 +877,12 @@
 		]
 	},
 	"sources": {
-		"contracts/vs2/ASTERDAO_Staking_Skeleton.sol": {
-			"keccak256": "0x5cc20d02475dc2968ea20313b5df745407ba82cab7a57a5d5e1053a12cfa6243",
+		"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": {
+			"keccak256": "0xfde0d93027949f545c729abaaac0c7731ab027f362707385cc4fe1ad88cd09dc",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a0bdca9ac5e3bd83d0262c2840809cc12f8b95aa286c67a7a14de70b2e8df0fd",
-				"dweb:/ipfs/QmTXyKKAaFa36kcDKAcmfHu6DBzi24KdpTQU4iLV655p5X"
+				"bzz-raw://ded97ad4146e81a9559784bd92116640bdf132ec2ee51ee7c3f9e0edbb922e67",
+				"dweb:/ipfs/QmPEBNoe5LGPyn353xDbFL4zAXWM8KKJTQKcGBHJkE1dBK"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {

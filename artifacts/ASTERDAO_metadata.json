@@ -1202,7 +1202,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/vs2/ASTERDAO_Token.sol": "ASTERDAO"
+			"contracts/vs3/ASTERDAO_Token.sol": "ASTERDAO"
 		},
 		"evmVersion": "shanghai",
 		"libraries": {},
@@ -1218,12 +1218,12 @@
 		]
 	},
 	"sources": {
-		"contracts/vs2/ASTERDAO_Token.sol": {
-			"keccak256": "0xf786974c067aef395dd8578496096d24c063e40fdfd350c55fd44d88e56fdb35",
+		"contracts/vs3/ASTERDAO_Token.sol": {
+			"keccak256": "0x687abaf697721b797c1a6f65deb9ce1384670547f67b2aeefb94e36ccaea15fa",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://ffc8a96cee3eab38c13c2957c3b659bde629a847f9a3b6268e90d82990e895bf",
-				"dweb:/ipfs/QmPfABAzgpjBxPvE8NNmPMRsNneKVsoowyak7nmpcN2YgT"
+				"bzz-raw://145131b7498383a3398c99e354e20c26543d870458b1579e1781bc9a0ea2fe90",
+				"dweb:/ipfs/QmZC6qZYdBdARbEBzwGkjnsscnavYV8euLFGFJKtSSwQW6"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {

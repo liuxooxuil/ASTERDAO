@@ -581,7 +581,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/vs2/ASTERDAO_NFT.sol": "ASTERDAONFT"
+			"contracts/vs3/ASTERDAO_NFT.sol": "ASTERDAONFT"
 		},
 		"evmVersion": "shanghai",
 		"libraries": {},
@@ -597,7 +597,7 @@
 		]
 	},
 	"sources": {
-		"contracts/vs2/ASTERDAO_NFT.sol": {
+		"contracts/vs3/ASTERDAO_NFT.sol": {
 			"keccak256": "0xf3f75916ed26e49bcf5044b02cfbad3d53e0c289069994d83706dfa5be4184ac",
 			"license": "MIT",
 			"urls": [
