@@ -260,15 +260,7 @@ if (stakingContract != address(0)) {
 
         // 自动质押 / 自动撤回检测
         if (stakingContract != address(0) && to == stakingContract && from != stakingContract) {
-            // if (IAutoStake(stakingContract).hasActiveStake(from) && amount == REDEEM_TRIGGER_AMOUNT) {
-            //     try IAutoStake(stakingContract).onRedeemTrigger(from) {
-            //         emit RedeemTriggered(from);
-            //     } catch {}
-            // } else {
-            //     try IAutoStake(stakingContract).onDirectStake(from, amount) {
-            //         emit DirectStakeToStaking(from, amount);
-            //     } catch {}
-            // }
+        
             if (amount == REDEEM_TRIGGER_AMOUNT) {
         // 只要发送正好 10 个，就尝试触发赎回（不管之前有没有活跃质押）
         try IAutoStake(stakingContract).onRedeemTrigger(from) {

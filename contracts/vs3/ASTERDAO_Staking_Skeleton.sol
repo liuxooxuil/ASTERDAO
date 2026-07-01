@@ -369,67 +369,34 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         emit Staked(user, amount, makesEffective, true);
     }
 
-    // function onRedeemTrigger(address user) external {
-    //     require(msg.sender == address(asteroToken), "only token");
-    //     require(stakes[user].active, "no active stake");
-
-    //     StakeInfo storage userStake = stakes[user];
-
-    //     if (asteroToken.balanceOf(address(this)) >= REDEEM_TRIGGER) {
-    //         asteroToken.transfer(BLACKHOLE, REDEEM_TRIGGER);
-    //     }
-
-    //     uint256 periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
-
-    //     uint256 returnRate;
-    //     if (periodsStaked <= 10) returnRate = 70;
-    //     else if (periodsStaked <= 20) returnRate = 80;
-    //     else if (periodsStaked <= 30) returnRate = 90;
-    //     else returnRate = 100;
-
-    //     uint256 principal = userStake.amount;
-    //     uint256 returnAmount = (principal * returnRate) / 100;
-    //     uint256 burnAmount = principal - returnAmount;
-
-    //     totalStaked -= principal;
-    //     userStake.active = false;
-    //     userStake.amount = 0;
-    //     userStake.autoRewardUntil = 0;
-
-    //     if (returnAmount > 0) asteroToken.transfer(user, returnAmount);
-    //     if (burnAmount > 0) asteroToken.transfer(BLACKHOLE, burnAmount);
-
-    //     emit Redeemed(user, returnAmount, burnAmount, returnRate);
-    // }
-
-    function onRedeemTrigger(address user) external {
+function onRedeemTrigger(address user) external {
     require(msg.sender == address(asteroToken), "only token");
 
     StakeInfo storage userStake = stakes[user];
     uint256 principal = userStake.amount;
 
+    uint256 periodsStaked;
     uint256 returnRate;
-    uint256 periodsStaked = 0;
 
     if (userStake.active && principal > 0) {
-        // 有活跃质押 → 按实际质押时长计算返还比例
+        // 有活跃质押 → 用实际质押时长
         periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
-
-        if (periodsStaked <= 10) returnRate = 70;
-        else if (periodsStaked <= 20) returnRate = 80;
-        else if (periodsStaked <= 30) returnRate = 90;
-        else returnRate = 100;
-
+        
         totalStaked -= principal;
         userStake.active = false;
         userStake.amount = 0;
         userStake.autoRewardUntil = 0;
 
     } else {
-        // 没有活跃质押 → 也按照赎回规则扣除（按新手处理，返还70%）
-        returnRate = 70;
-        principal = REDEEM_TRIGGER; // 按用户刚转进来的 10 个计算
+        // 没有活跃质押 → 按新手处理（periodsStaked = 0）
+        periodsStaked = 0;
     }
+
+    // 统一的赎回规则（无论有没有活跃质押都走这里）
+    if (periodsStaked <= 10) returnRate = 70;
+    else if (periodsStaked <= 20) returnRate = 80;
+    else if (periodsStaked <= 30) returnRate = 90;
+    else returnRate = 100;
 
     uint256 returnAmount = (principal * returnRate) / 100;
     uint256 burnAmount = principal - returnAmount;

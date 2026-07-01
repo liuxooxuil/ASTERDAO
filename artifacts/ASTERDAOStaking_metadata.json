@@ -1099,11 +1099,11 @@
 	},
 	"sources": {
 		"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": {
-			"keccak256": "0x7a80c8ff959b2f289c2532655e3a40df72045bc17e2a7a38abf9b4bda11a20bb",
+			"keccak256": "0xe767e5746d2d09cd5ea580a6a62a561aa395e735ba31c62ff60941ca5c41ab2e",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://6529053e72d88c773e2493f45599e9c42c66e026607fbf54a9e8062fe7320587",
-				"dweb:/ipfs/QmWDKocYgQiuPhPL4B7esCXNj6xm933zUaAUWxyETi3JC6"
+				"bzz-raw://53411d07bbba64056ee020d4fb314775d6bf12575f48628fa4959f708737fa37",
+				"dweb:/ipfs/QmXMgLgcGXNpJHp3ruFay6ogzMZ7PVqpWR8KEhaXcsGEJF"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {
