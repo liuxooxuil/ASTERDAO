@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.34+commit.80d5c536"
+		"version": "0.8.20+commit.a1b79de6"
 	},
 	"language": "Solidity",
 	"output": {
@@ -1084,7 +1084,7 @@
 		"compilationTarget": {
 			"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": "ASTERDAOStaking"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -1099,11 +1099,11 @@
 	},
 	"sources": {
 		"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": {
-			"keccak256": "0xe767e5746d2d09cd5ea580a6a62a561aa395e735ba31c62ff60941ca5c41ab2e",
+			"keccak256": "0xbb3879adbb424f1425f9d28314f001e63ef720423a1a58c19b8c3e2f5fc995d4",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://53411d07bbba64056ee020d4fb314775d6bf12575f48628fa4959f708737fa37",
-				"dweb:/ipfs/QmXMgLgcGXNpJHp3ruFay6ogzMZ7PVqpWR8KEhaXcsGEJF"
+				"bzz-raw://a7a9ed28c9e76554b1d6a132ec841e6046e1942da0e1cbaf540912df596eccaf",
+				"dweb:/ipfs/QmeDJZDxPxo7nrFLYSCgQuWGFHaMFdJ6vQ7mq1sfaL9HRY"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {

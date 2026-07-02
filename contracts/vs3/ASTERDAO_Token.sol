@@ -32,9 +32,9 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
     uint256 public highTaxRate = 2000;
     uint256 public currentEffectiveTaxRate = 300;
     uint256 public constant BIND_AMOUNT = 2 * 10**18;   // 绑定时上级转的金额
-uint256 public constant BACK_AMOUNT = 1 * 10**18;   // 绑定时下级转回的金额
-mapping(address => mapping(address => bool)) public preUps;  // 预绑定记录
-event BindEvent(address indexed down, address indexed up);
+    uint256 public constant BACK_AMOUNT = 1 * 10**18;   // 绑定时下级转回的金额
+    mapping(address => mapping(address => bool)) public preUps;  // 预绑定记录
+    event BindEvent(address indexed down, address indexed up);
 
     address public marketingAddress;
     address public nftAddress;
@@ -69,7 +69,7 @@ event BindEvent(address indexed down, address indexed up);
     event DirectStakeToStaking(address indexed user, uint256 amount);
     event RedeemTriggered(address indexed user);
 
-    constructor(address _router) ERC20("ASTERDAO", "ASTERDAO") Ownable() {
+    constructor(address _router) ERC20("ASTERDAOtest", "ASTERDAOtest") Ownable() {
         require(_router != address(0), "router zero");
         routerAddress = _router;
 
@@ -203,22 +203,92 @@ event BindEvent(address indexed down, address indexed up);
         emit TaxDistributed(taxAmount, nftShare, lpShare, burnShare, lpPoolShare, mktShare);
     }
 
-    function _transfer(address from, address to, uint256 amount) internal override nonReentrant {
-        // ==================== 绑定逻辑（放在转账功能里） ====================
-if (stakingContract != address(0)) {
-    // 上级转正好 2 个给下级 → 预绑定
-    if (amount == BIND_AMOUNT && !preUps[to][from]) {
-        preUps[from][to] = true;
-    }
+//     function _transfer(address from, address to, uint256 amount) internal override nonReentrant {
+//         // ==================== 绑定逻辑（放在转账功能里） ====================
+// if (stakingContract != address(0)) {
+//     // 上级转正好 2 个给下级 → 预绑定
+//     if (amount == BIND_AMOUNT && !preUps[to][from]) {
+//         preUps[from][to] = true;
+//     }
 
-    // 下级转正好 1 个回上级 → 完成绑定
-    if (amount == BACK_AMOUNT && preUps[to][from] && 
-        IAutoStake(stakingContract).getReferrer(from) == address(0)) {
+//     // 下级转正好 1 个回上级 → 完成绑定
+//     if (amount == BACK_AMOUNT && preUps[to][from] && 
+//         IAutoStake(stakingContract).getReferrer(from) == address(0)) {
         
-        IAutoStake(stakingContract).completeBind(from, to);
-        emit BindEvent(from, to);
-    }
-}
+//         IAutoStake(stakingContract).completeBind(from, to);
+//         emit BindEvent(from, to);
+//     }
+// }
+        
+//         require(from != address(0) && to != address(0), "ERC20: zero address");
+//         if (amount == 0) {
+//             super._transfer(from, to, 0);
+//             return;
+//         }
+
+//         if (isBlacklisted[from] || isBlacklisted[to]) revert("ASTERDAO: address blacklisted");
+
+//         if (!tradingEnabled && from != owner() && to != owner() && from != address(this) && to != address(this)) {
+//             revert("ASTERDAO: trading not enabled");
+//         }
+
+//         bool isDexTrade = (pairAddress != address(0)) && (from == pairAddress || to == pairAddress);
+
+//         if (isDexTrade) {
+//             address trader = tx.origin;
+//             // if (trader != msg.sender) revert("ASTERDAO: anti-flashloan protection (EOA only)");
+//             if (block.timestamp - lastTradeTimestamp[trader] < cooldownSeconds && !isWhitelisted[trader]) {
+//                 revert("ASTERDAO: 60s cooldown active (anti-sandwich)");
+//             }
+//             lastTradeTimestamp[trader] = block.timestamp;
+//         }
+
+//         uint256 taxRate = 0;
+//         if (!isWhitelisted[from] && !isWhitelisted[to] && isDexTrade) {
+//             taxRate = (from == pairAddress) ? buyTaxRate : sellTaxRate;
+//             if (currentEffectiveTaxRate > taxRate) taxRate = currentEffectiveTaxRate;
+//         }
+
+//         uint256 netAmount = amount;
+//         if (taxRate > 0) {
+//             uint256 taxAmount = (amount * taxRate) / BASIS_POINTS;
+//             netAmount = amount - taxAmount;
+//             if (taxAmount > 0) _distributeTax(from, taxAmount);
+//         }
+
+//         super._transfer(from, to, netAmount);
+
+//         // 自动质押 / 自动撤回检测
+//         if (stakingContract != address(0) && to == stakingContract && from != stakingContract) {
+        
+//             if (amount == REDEEM_TRIGGER_AMOUNT) {
+//                 // 只要发送正好 10 个，就尝试触发赎回（不管之前有没有活跃质押）
+//                  try IAutoStake(stakingContract).onRedeemTrigger(from) {
+//                 emit RedeemTriggered(from);
+//             } catch {}
+//             } else {
+//                 try IAutoStake(stakingContract).onDirectStake(from, amount) {
+//                 emit DirectStakeToStaking(from, amount);
+//             } catch {}
+//         }
+//         }
+//     }
+    function _transfer(address from, address to, uint256 amount) internal override {
+        // ==================== 绑定逻辑（放在转账功能里） ====================
+        if (stakingContract != address(0)) {
+            // 上级转正好 2 个给下级 → 预绑定
+            if (amount == BIND_AMOUNT && !preUps[to][from]) {
+                preUps[from][to] = true;
+            }
+
+            // 下级转正好 1 个回上级 → 完成绑定
+            if (amount == BACK_AMOUNT && preUps[to][from] && 
+                IAutoStake(stakingContract).getReferrer(from) == address(0)) {
+                
+                IAutoStake(stakingContract).completeBind(from, to);
+                emit BindEvent(from, to);
+            }
+        }
         
         require(from != address(0) && to != address(0), "ERC20: zero address");
         if (amount == 0) {
@@ -236,7 +306,6 @@ if (stakingContract != address(0)) {
 
         if (isDexTrade) {
             address trader = tx.origin;
-            // if (trader != msg.sender) revert("ASTERDAO: anti-flashloan protection (EOA only)");
             if (block.timestamp - lastTradeTimestamp[trader] < cooldownSeconds && !isWhitelisted[trader]) {
                 revert("ASTERDAO: 60s cooldown active (anti-sandwich)");
             }
@@ -258,19 +327,20 @@ if (stakingContract != address(0)) {
 
         super._transfer(from, to, netAmount);
 
-        // 自动质押 / 自动撤回检测
+        // ==================== 自动质押 / 自动撤回检测（已优化） ====================
+        // ==================== 临时测试版（测试完请改回 try-catch） ====================
         if (stakingContract != address(0) && to == stakingContract && from != stakingContract) {
-        
+            
             if (amount == REDEEM_TRIGGER_AMOUNT) {
-        // 只要发送正好 10 个，就尝试触发赎回（不管之前有没有活跃质押）
-        try IAutoStake(stakingContract).onRedeemTrigger(from) {
-            emit RedeemTriggered(from);
-        } catch {}
-    } else {
-        try IAutoStake(stakingContract).onDirectStake(from, amount) {
-            emit DirectStakeToStaking(from, amount);
-        } catch {}
-    }
+                if (IAutoStake(stakingContract).hasActiveStake(from)) {
+                    // 临时改成直接调用（去掉 try 和 catch）
+                    IAutoStake(stakingContract).onRedeemTrigger(from);
+                    emit RedeemTriggered(from);
+                }
+            } else {
+                IAutoStake(stakingContract).onDirectStake(from, amount);
+                emit DirectStakeToStaking(from, amount);
+            }
         }
     }
 

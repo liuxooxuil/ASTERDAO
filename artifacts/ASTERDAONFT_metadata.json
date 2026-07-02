@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.34+commit.80d5c536"
+		"version": "0.8.20+commit.a1b79de6"
 	},
 	"language": "Solidity",
 	"output": {
@@ -583,7 +583,7 @@
 		"compilationTarget": {
 			"contracts/vs3/ASTERDAO_NFT.sol": "ASTERDAONFT"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"

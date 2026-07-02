@@ -369,50 +369,93 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         emit Staked(user, amount, makesEffective, true);
     }
 
-function onRedeemTrigger(address user) external {
-    require(msg.sender == address(asteroToken), "only token");
+    function onRedeemTrigger(address user) external {
+        require(msg.sender == address(asteroToken), "only token");
 
-    StakeInfo storage userStake = stakes[user];
-    uint256 principal = userStake.amount;
+        StakeInfo storage userStake = stakes[user];
+        require(userStake.active, "no active stake");
+        require(userStake.amount > 0, "no stake amount");
 
-    uint256 periodsStaked;
-    uint256 returnRate;
+        uint256 principal = userStake.amount;
 
-    if (userStake.active && principal > 0) {
-        // 有活跃质押 → 用实际质押时长
-        periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
-        
-        totalStaked -= principal;
+        // 软处理 totalStaked，防止因为记账问题导致 revert
+        if (totalStaked >= principal) {
+            totalStaked -= principal;
+        } else {
+            totalStaked = 0;   // 直接清零，避免下溢
+        }
+
+        uint256 periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
+
+        uint256 returnRate;
+        if (periodsStaked <= 10) returnRate = 70;
+        else if (periodsStaked <= 20) returnRate = 80;
+        else if (periodsStaked <= 30) returnRate = 90;
+        else returnRate = 100;
+
+        uint256 returnAmount = (principal * returnRate) / 100;
+        uint256 burnAmount = principal - returnAmount;
+
+        // 更新状态
         userStake.active = false;
         userStake.amount = 0;
         userStake.autoRewardUntil = 0;
 
-    } else {
-        // 没有活跃质押 → 按新手处理（periodsStaked = 0）
-        periodsStaked = 0;
+        // 带余额检查的安全转账
+        if (returnAmount > 0 && asteroToken.balanceOf(address(this)) >= returnAmount) {
+            asteroToken.transfer(user, returnAmount);
+        }
+
+        if (burnAmount > 0 && asteroToken.balanceOf(address(this)) >= burnAmount) {
+            asteroToken.transfer(BLACKHOLE, burnAmount);
+        }
+
+        emit Redeemed(user, returnAmount, burnAmount, returnRate);
     }
+// function onRedeemTrigger(address user) external {
+//     require(msg.sender == address(asteroToken), "only token");
 
-    // 统一的赎回规则（无论有没有活跃质押都走这里）
-    if (periodsStaked <= 10) returnRate = 70;
-    else if (periodsStaked <= 20) returnRate = 80;
-    else if (periodsStaked <= 30) returnRate = 90;
-    else returnRate = 100;
+//     StakeInfo storage userStake = stakes[user];
+//     uint256 principal = userStake.amount;
 
-    uint256 returnAmount = (principal * returnRate) / 100;
-    uint256 burnAmount = principal - returnAmount;
+//     uint256 periodsStaked;
+//     uint256 returnRate;
 
-    // 返还给用户
-    if (returnAmount > 0 && asteroToken.balanceOf(address(this)) >= returnAmount) {
-        asteroToken.transfer(user, returnAmount);
-    }
+//     if (userStake.active && principal > 0) {
+//         // 有活跃质押 → 用实际质押时长
+//         periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
+        
+//         totalStaked -= principal;
+//         userStake.active = false;
+//         userStake.amount = 0;
+//         userStake.autoRewardUntil = 0;
 
-    // 按照赎回规则扣除（销毁）
-    if (burnAmount > 0 && asteroToken.balanceOf(address(this)) >= burnAmount) {
-        asteroToken.transfer(BLACKHOLE, burnAmount);
-    }
+//     } else {
+//         // 没有活跃质押 → 按新手处理（periodsStaked = 0）
+//         periodsStaked = 0;
+//     }
 
-    emit Redeemed(user, returnAmount, burnAmount, returnRate);
-}
+//     // 统一的赎回规则（无论有没有活跃质押都走这里）
+//     if (periodsStaked <= 10) returnRate = 70;
+//     else if (periodsStaked <= 20) returnRate = 80;
+//     else if (periodsStaked <= 30) returnRate = 90;
+//     else returnRate = 100;
+
+//     uint256 returnAmount = (principal * returnRate) / 100;
+//     uint256 burnAmount = principal - returnAmount;
+
+//     // 返还给用户
+//     if (returnAmount > 0 && asteroToken.balanceOf(address(this)) >= returnAmount) {
+//         asteroToken.transfer(user, returnAmount);
+//     }
+
+//     // 按照赎回规则扣除（销毁）
+//     if (burnAmount > 0 && asteroToken.balanceOf(address(this)) >= burnAmount) {
+//         asteroToken.transfer(BLACKHOLE, burnAmount);
+//     }
+
+//     emit Redeemed(user, returnAmount, burnAmount, returnRate);
+// }
 
     function stake(uint256 amount, address referrer) external payable nonReentrant {
         require(amount > 0, "amount > 0");

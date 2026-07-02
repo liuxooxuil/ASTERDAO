@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.34+commit.80d5c536"
+		"version": "0.8.20+commit.a1b79de6"
 	},
 	"language": "Solidity",
 	"output": {
@@ -70,7 +70,7 @@
 		"compilationTarget": {
 			"contracts/vs3/ASTERDAO_Token.sol": "IUniswapV2Pair"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -85,11 +85,11 @@
 	},
 	"sources": {
 		"contracts/vs3/ASTERDAO_Token.sol": {
-			"keccak256": "0x202e15d7bb3a0ee608f98e44b5539074ff6087eed7a61b031294116d454d63ac",
+			"keccak256": "0x5fbca0a0644b1cd6ba1a855e7ef5406c6e2f55870162d46eb81767acccbe3090",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://7bce5de10384f6ad7d35e9f8e870c60e7b930deecea3d8b56121e04b22cc2d65",
-				"dweb:/ipfs/QmaHghDckLgBEqxAj6Kkz9PLBzq1FTPcBVpv9xEHCWts5C"
+				"bzz-raw://ec858cf4b1f0141c44d7ebecaedfdba477179ea2a26b235399e13ae87e2a6b64",
+				"dweb:/ipfs/QmdfFEL4h4YgJGkthaFfKaCMLsDy3Ab9GG7xZ7jXtQ73WH"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {
