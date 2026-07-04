@@ -39,7 +39,8 @@
 		"methodIdentifiers": {
 			"getReserves()": "0902f1ac",
 			"token0()": "0dfe1681",
-			"token1()": "d21220a7"
+			"token1()": "d21220a7",
+			"totalSupply()": "18160ddd"
 		}
 	},
 	"abi": [
@@ -87,6 +88,19 @@
 					"internalType": "address",
 					"name": "",
 					"type": "address"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "totalSupply",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
 				}
 			],
 			"stateMutability": "view",

@@ -37,5 +37,12 @@
   "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/utils/Strings.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v4.9.6/contracts/utils/Strings.sol",
   "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/utils/math/Math.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v4.9.6/contracts/utils/math/Math.sol",
   "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/utils/math/SignedMath.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v4.9.6/contracts/utils/math/SignedMath.sol",
-  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/utils/introspection/ERC165.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v4.9.6/contracts/utils/introspection/ERC165.sol"
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/utils/introspection/ERC165.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v4.9.6/contracts/utils/introspection/ERC165.sol",
+  "@openzeppelin/contracts@5.6.0/token/ERC721/ERC721.sol": ".deps/npm/@openzeppelin/contracts@5.6.0/token/ERC721/ERC721.sol",
+  "@openzeppelin/contracts@5.6.0/token/ERC721/IERC721.sol": ".deps/npm/@openzeppelin/contracts@5.6.0/token/ERC721/IERC721.sol",
+  "@openzeppelin/contracts@5.6.0/utils/introspection/IERC165.sol": ".deps/npm/@openzeppelin/contracts@5.6.0/utils/introspection/IERC165.sol",
+  "@openzeppelin/contracts@5.6.0/token/ERC721/extensions/IERC721Metadata.sol": ".deps/npm/@openzeppelin/contracts@5.6.0/token/ERC721/extensions/IERC721Metadata.sol",
+  "@openzeppelin/contracts@5.6.0/token/ERC721/utils/ERC721Utils.sol": ".deps/npm/@openzeppelin/contracts@5.6.0/token/ERC721/utils/ERC721Utils.sol",
+  "@openzeppelin/contracts@5.6.0/token/ERC721/IERC721Receiver.sol": ".deps/npm/@openzeppelin/contracts@5.6.0/token/ERC721/IERC721Receiver.sol",
+  "@openzeppelin/contracts@5.6.0/utils/introspection/ERC165.sol": ".deps/npm/@openzeppelin/contracts@5.6.0/utils/introspection/ERC165.sol"
 }

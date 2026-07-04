@@ -8,19 +8,9 @@
 			{
 				"inputs": [
 					{
-						"internalType": "string",
-						"name": "name_",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "symbol_",
-						"type": "string"
-					},
-					{
-						"internalType": "string",
-						"name": "baseURI_",
-						"type": "string"
+						"internalType": "address",
+						"name": "_tokenContract",
+						"type": "address"
 					}
 				],
 				"stateMutability": "nonpayable",
@@ -74,6 +64,19 @@
 					}
 				],
 				"name": "ApprovalForAll",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "perNFT",
+						"type": "uint256"
+					}
+				],
+				"name": "NFTDividendDistributed",
 				"type": "event"
 			},
 			{
@@ -219,6 +222,19 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
+						"name": "perNFT",
+						"type": "uint256"
+					}
+				],
+				"name": "distributeDividends",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
 						"name": "tokenId",
 						"type": "uint256"
 					}
@@ -279,6 +295,44 @@
 						"internalType": "string",
 						"name": "",
 						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					}
+				],
+				"name": "nftBalanceOf",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "nftOwners",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
 					}
 				],
 				"stateMutability": "view",
@@ -396,7 +450,7 @@
 				"inputs": [
 					{
 						"internalType": "string",
-						"name": "newBaseURI",
+						"name": "_baseURI",
 						"type": "string"
 					}
 				],
@@ -432,6 +486,19 @@
 						"internalType": "string",
 						"name": "",
 						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "tokenContract",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
 					}
 				],
 				"stateMutability": "view",
@@ -507,7 +574,6 @@
 			}
 		],
 		"devdoc": {
-			"details": "Simple ERC721 for 30 NFTs. Can be used for dividend weighting (equal share or rarity). In staking contract, loop 1 to 30 and send share to ownerOf(i) for the 2% static rewards. Owner can mint all 30 to specific addresses (community, team, airdrop, etc.).",
 			"events": {
 				"Approval(address,address,uint256)": {
 					"details": "Emitted when `owner` enables `approved` to manage the `tokenId` token."
@@ -570,7 +636,6 @@
 					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
 				}
 			},
-			"title": "ASTERDAO NFT (30 limited cards)",
 			"version": 1
 		},
 		"userdoc": {
@@ -590,19 +655,20 @@
 		},
 		"optimizer": {
 			"enabled": true,
-			"runs": 200
+			"runs": 1
 		},
 		"remappings": [
 			":@openzeppelin/contracts/=@openzeppelin/contracts@5.6.0/"
-		]
+		],
+		"viaIR": true
 	},
 	"sources": {
 		"contracts/vs3/ASTERDAO_NFT.sol": {
-			"keccak256": "0xf3f75916ed26e49bcf5044b02cfbad3d53e0c289069994d83706dfa5be4184ac",
+			"keccak256": "0x8aaee9eaa1e9c36b983433d7890fcbfdcefd1a01dff6489f4d666dd7ac80b459",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://8773c56b0d290e3e60e6817c9d37fad5239d2881931e2297c2fe022bd2a77ca5",
-				"dweb:/ipfs/Qmf4xLwbqao7MQmcBXtSyrWHKtRWTb775K8PzMP4pUrcwK"
+				"bzz-raw://b17c913106632edf2e3fd49e2c10176b0bb8ca42dc19a83147349e18e44d4664",
+				"dweb:/ipfs/QmSfygo8hG2PKnyZWDfwcn7fkfjsHjNLktfJxgZLy9bkrY"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {

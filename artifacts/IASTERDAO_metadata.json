@@ -4,12 +4,30 @@
 	},
 	"language": "Solidity",
 	"output": {
-		"abi": [],
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "asteroAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "getUSDValue",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
 		"devdoc": {
-			"details": "This is a HIGH-LEVEL skeleton showing structure for: - Stake ASTERDAO + BNB (gas/treasury) - Daily rewards 1%-1.5% dynamic by totalStaked pool size (for up to 10 days example) - Auto/claimable daily distribution (use Chainlink Keeper or user claim) - Time-based early exit penalty (0-10d:70%, 10-20d:80%, 20-30d:90%, 30d+:100%) - Single active stake per address (no re-stake until redeem) - Referral system up to 16 levels with % on static rewards (10%/6%/4%/2%) - 10% static weighted to LP stakers, 2% to NFT holders (loop over 30 NFTs ok) - Max stake ~5000U equivalent, effective user >50U - Bind referrer, dynamic 2 token down / 1 token back (from treasury or allocation) - All deducted penalties to blackhole - Integrate with ASTER token (0x000ae314e2a2172a039b26378814c252734f556a) for LP dividend if needed IMPORTANT: - Rewards paid FROM staking pool balance (tokens taken out of pool) - High APY unsustainable without massive continuous inflow (taxes, new stakes) - Auto daily send requires off-chain keeper (Chainlink Automation) calling distributeForUser or batch - For production: add pausable, more events, gas optimization, Merkle for referrals if needed, LP/NFT integration - MUST be audited + economic model simulation before deploy - BNB sent on stake can go to treasury for keeper gas reimbursement (off-chain) or project use User flow example: 1. User approves ASTERDAO to this contract 2. Call stake(amount, referrer) payable (send some BNB) 3. (Keeper or user) calls claimDailyReward() or distributePending() daily 4. To exit early: call redeem() - sends 10 ASTERDAO as trigger? (or just call with param), gets % principal back, rest burn",
 			"kind": "dev",
 			"methods": {},
-			"title": "ASTERDAO Staking & Referral Skeleton (NOT PRODUCTION READY)",
 			"version": 1
 		},
 		"userdoc": {
@@ -20,7 +38,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/ASTERDAO_Staking_Skeleton.sol": "IASTERDAO"
+			"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": "IASTERDAO"
 		},
 		"evmVersion": "shanghai",
 		"libraries": {},
@@ -36,12 +54,12 @@
 		]
 	},
 	"sources": {
-		"contracts/ASTERDAO_Staking_Skeleton.sol": {
-			"keccak256": "0x35a6b0c78f49da16a99be3987feebc111a39c555576f761cf0894418d54a4bb8",
+		"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": {
+			"keccak256": "0xa4f0a0c2344356fc0f74a77932fb2b3df0e296ce3d42768637ece9a7a874277a",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://76794ffe7977f178648f0dd20efcbe3c815ec2a0f00f8cfecfd81c5d63aad8fe",
-				"dweb:/ipfs/QmTbg1JS3ZoVDXiMrRnG6V2wW2AJezgLAUUEMRocaSE1Jg"
+				"bzz-raw://25792bebe0f3bb420673238c8baf5354b70549bdd094ffd2137e1c9bf8796616",
+				"dweb:/ipfs/QmcNLAB5uTTxVrYDSfiqPG8g2j2Z4NJ5PpKuBqUzKRuwv5"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {

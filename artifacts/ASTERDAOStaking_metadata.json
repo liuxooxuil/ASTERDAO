@@ -619,6 +619,25 @@
 				"inputs": [
 					{
 						"internalType": "address",
+						"name": "user",
+						"type": "address"
+					}
+				],
+				"name": "isLPWhitelistedUser",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
 						"name": "",
 						"type": "address"
 					}
@@ -699,6 +718,19 @@
 			{
 				"inputs": [],
 				"name": "minEffectiveStake",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "minEffectiveUSD",
 				"outputs": [
 					{
 						"internalType": "uint256",
@@ -914,6 +946,19 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "address[]",
+						"name": "users",
+						"type": "address[]"
+					}
+				],
+				"name": "removeLPWhitelist",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
 				"inputs": [],
 				"name": "renounceOwnership",
 				"outputs": [],
@@ -955,6 +1000,19 @@
 					}
 				],
 				"name": "setMaxStakePerUser",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_usdAmount",
+						"type": "uint256"
+					}
+				],
+				"name": "setMinEffectiveUSD",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -1099,11 +1157,11 @@
 	},
 	"sources": {
 		"contracts/vs3/ASTERDAO_Staking_Skeleton.sol": {
-			"keccak256": "0xbb3879adbb424f1425f9d28314f001e63ef720423a1a58c19b8c3e2f5fc995d4",
+			"keccak256": "0xa4f0a0c2344356fc0f74a77932fb2b3df0e296ce3d42768637ece9a7a874277a",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a7a9ed28c9e76554b1d6a132ec841e6046e1942da0e1cbaf540912df596eccaf",
-				"dweb:/ipfs/QmeDJZDxPxo7nrFLYSCgQuWGFHaMFdJ6vQ7mq1sfaL9HRY"
+				"bzz-raw://25792bebe0f3bb420673238c8baf5354b70549bdd094ffd2137e1c9bf8796616",
+				"dweb:/ipfs/QmcNLAB5uTTxVrYDSfiqPG8g2j2Z4NJ5PpKuBqUzKRuwv5"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {

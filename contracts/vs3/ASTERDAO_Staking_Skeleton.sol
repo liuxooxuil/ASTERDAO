@@ -9,6 +9,10 @@ interface IERC721 {
     function ownerOf(uint256 tokenId) external view returns (address);
 }
 
+interface IASTERDAO {
+    function getUSDValue(uint256 asteroAmount) external view returns (uint256);
+}
+
 contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     IERC20 public immutable asteroToken;
     IERC20 public lpToken;
@@ -20,7 +24,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     uint256 public constant STAKE_PERIOD_UNITS = 10;
     uint256 public constant TIME_UNIT = 60;
     uint256 public constant REDEEM_TRIGGER = 10 * 10**18;
-    // uint256 public constant LP_LOCK_PERIOD = 100 * 60;
     uint256 public constant LP_LOCK_PERIOD = 10;
     uint256 public constant LP_REWARD_AMOUNT = 100 * 10**18;
 
@@ -28,9 +31,10 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     uint256 public rateMid = 120;
     uint256 public rateLow = 100;
 
+    // ==================== 已更新推荐比例（总和正好22%） ====================
     uint256[16] public referralRates = [
-        1000, 600, 400, 400, 400, 200, 200, 200, 200, 200,
-        200, 200, 200, 200, 200, 200
+        440, 264, 176, 176, 176, 88, 88, 88, 88, 88,
+        88, 88, 88, 88, 88, 88
     ];
 
     struct StakeInfo {
@@ -56,6 +60,7 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
 
     uint256 public totalStaked;
     uint256 public minEffectiveStake = 50 * 10**18;
+    uint256 public minEffectiveUSD = 50 * 1e18;
     uint256 public maxStakePerUser = 5000 * 10**18;
 
     uint256 public lpRewardPool;
@@ -79,7 +84,11 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         projectTreasury = _projectTreasury;
     }
 
-    // ==================== LP 相关设置 ====================
+    function setMinEffectiveUSD(uint256 _usdAmount) external onlyOwner {
+        minEffectiveUSD = _usdAmount;
+    }
+
+    // ==================== LP 相关函数 ====================
     function setLPToken(address _lpToken) external onlyOwner {
         lpToken = IERC20(_lpToken);
     }
@@ -94,7 +103,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         }
     }
 
-    // ==================== LP 用户存入（函数调用方式） ====================
     function depositLP(uint256 amount) external nonReentrant {
         require(isLPWhitelisted[msg.sender], "Not whitelisted LP address");
         require(amount > 0, "Amount must be greater than 0");
@@ -111,7 +119,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         emit LPDeposited(msg.sender, amount);
     }
 
-    // ==================== LP 提现（函数调用方式） ====================
     function withdrawLP() external nonReentrant {
         LPPosition storage position = lpPositions[msg.sender];
         require(position.amount > 0, "No LP position");
@@ -133,16 +140,13 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         emit LPWithdrawn(msg.sender, usdtAmount, rewardAmount);
     }
 
-    // ==================== 支持“直接转 10U 就触发” ====================
     function onLPTokenReceived(address from, uint256 amount) external {
         require(msg.sender == address(lpToken), "Only LP token can call");
         require(isLPWhitelisted[from], "Not whitelisted LP user");
 
         if (amount == 10 * 10**18) {
-            // 转正好 10 个 U → 触发提现
             _processLPWithdraw(from);
         } else {
-            // 正常存款
             if (lpPositions[from].claimed || lpPositions[from].amount == 0) {
                 lpPositions[from] = LPPosition({
                     amount: amount,
@@ -177,8 +181,7 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         emit LPWithdrawn(user, usdtAmount, rewardAmount);
     }
 
-    // ==================== 以下为原有功能（完整保留） ====================
-
+    // ==================== 核心功能 ====================
     function getCurrentRate() public view returns (uint256) {
         if (totalStaked >= 100_000_000 * 10**18) return rateHigh;
         if (totalStaked >= 50_000_000 * 10**18) return rateMid;
@@ -203,23 +206,13 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         return depth;
     }
 
-    function getPoolInfo() public view returns (
-        uint256 totalStakedAmount,
-        uint256 contractBalance,
-        uint256 currentRate
-    ) {
+    function getPoolInfo() public view returns (uint256 totalStakedAmount, uint256 contractBalance, uint256 currentRate) {
         totalStakedAmount = totalStaked;
         contractBalance = asteroToken.balanceOf(address(this));
         currentRate = getCurrentRate();
     }
 
-    function pendingReward(address user) public view returns (
-        uint256 userNet,
-        uint256 grossReward,
-        uint256 referralDeducted,
-        uint256 lpShare,
-        uint256 nftShare
-    ) {
+    function pendingReward(address user) public view returns (uint256 userNet, uint256 grossReward, uint256 referralDeducted, uint256 lpShare, uint256 nftShare) {
         StakeInfo storage userStake = stakes[user];
         if (!userStake.active) return (0, 0, 0, 0, 0);
 
@@ -272,6 +265,56 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         emit AutoRewardActivated(msg.sender, periods, userStake.autoRewardUntil);
     }
 
+    // ==================== 已更新：claimDailyReward（用户拿66%） ====================
+    function claimDailyReward() external nonReentrant {
+        StakeInfo storage userStake = stakes[msg.sender];
+        require(userStake.active, "no active stake");
+
+        uint256 rate = getCurrentRate();
+        if (rate == 0) {
+            userStake.lastClaimTime = block.timestamp;
+            return;
+        }
+
+        uint256 periodsPassed = (block.timestamp - userStake.lastClaimTime) / TIME_UNIT;
+        if (periodsPassed == 0) return;
+        periodsPassed = periodsPassed > STAKE_PERIOD_UNITS ? STAKE_PERIOD_UNITS : periodsPassed;
+
+        uint256 grossReward = (userStake.amount * rate * periodsPassed) / 10000;
+
+        // 用户拿 66%
+        uint256 userNet = (grossReward * 66) / 100;
+
+        // 分流 34%
+        uint256 referralTotal = (grossReward * 22) / 100;   // 推荐 22%
+        uint256 lpShare       = (grossReward * 10) / 100;   // LP 10%
+        uint256 nftShare      = (grossReward * 2)  / 100;   // NFT 2%
+
+        lpRewardPool += lpShare;
+        nftRewardPool += nftShare;
+
+        uint256 actuallyDistributed = 0;
+        bool wasEffective = isEffectiveUser[msg.sender];
+
+        if (wasEffective && userStake.referrer != address(0)) {
+            actuallyDistributed = _distributeReferralRewards(msg.sender, referralTotal, userStake.referrer);
+        } else {
+            if (referralTotal > 0 && projectTreasury != address(0)) {
+                asteroToken.transfer(projectTreasury, referralTotal);
+                actuallyDistributed = referralTotal;
+            }
+        }
+
+        if (userNet > 0) {
+            asteroToken.transfer(msg.sender, userNet);
+        }
+
+        userStake.lastClaimTime = block.timestamp;
+
+        emit RewardClaimed(msg.sender, userNet, actuallyDistributed, periodsPassed, wasEffective);
+    }
+
+    // ==================== 已更新：distributeAutoRewards ====================
     function distributeAutoRewards(address[] calldata users) external {
         for (uint256 i = 0; i < users.length; i++) {
             address user = users[i];
@@ -288,17 +331,10 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
 
             uint256 grossReward = (userStake.amount * rate * periodsPassed) / 10000;
 
-            uint256 totalReferralRate = 0;
-            for (uint8 j = 0; j < MAX_REFERRAL_LEVELS; j++) {
-                totalReferralRate += referralRates[j];
-            }
-
-            uint256 referralDeducted = (grossReward * totalReferralRate) / 10000;
-            uint256 afterReferral = grossReward - referralDeducted;
-
-            uint256 lpShare = afterReferral * 10 / 100;
-            uint256 nftShare = afterReferral * 2 / 100;
-            uint256 userNet = afterReferral - lpShare - nftShare;
+            uint256 userNet       = (grossReward * 66) / 100;
+            uint256 referralTotal = (grossReward * 22) / 100;
+            uint256 lpShare       = (grossReward * 10) / 100;
+            uint256 nftShare      = (grossReward * 2)  / 100;
 
             lpRewardPool += lpShare;
             nftRewardPool += nftShare;
@@ -307,11 +343,11 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
             bool wasEffective = isEffectiveUser[user];
 
             if (wasEffective && userStake.referrer != address(0)) {
-                actuallyDistributed = _distributeReferralRewards(user, referralDeducted, userStake.referrer);
+                actuallyDistributed = _distributeReferralRewards(user, referralTotal, userStake.referrer);
             } else {
-                if (referralDeducted > 0 && projectTreasury != address(0)) {
-                    asteroToken.transfer(projectTreasury, referralDeducted);
-                    actuallyDistributed = referralDeducted;
+                if (referralTotal > 0 && projectTreasury != address(0)) {
+                    asteroToken.transfer(projectTreasury, referralTotal);
+                    actuallyDistributed = referralTotal;
                 }
             }
 
@@ -324,6 +360,40 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
             emit RewardClaimed(user, userNet, actuallyDistributed, periodsPassed, wasEffective);
             emit AutoRewardDistributed(user, userNet);
         }
+    }
+
+    // 移除 LP 白名单
+    function removeLPWhitelist(address[] calldata users) external onlyOwner {
+        for (uint256 i = 0; i < users.length; i++) {
+            isLPWhitelisted[users[i]] = false;
+        }
+    }
+
+    // 查询某个地址是否在 LP 白名单
+    function isLPWhitelistedUser(address user) external view returns (bool) {
+        return isLPWhitelisted[user];
+    }
+
+    function _distributeReferralRewards(address downline, uint256 totalReferralAmount, address startReferrer) internal returns (uint256 distributed) {
+        address current = startReferrer;
+        uint256 remaining = totalReferralAmount;
+
+        for (uint8 level = 0; level < MAX_REFERRAL_LEVELS && current != address(0); level++) {
+            uint256 share = (totalReferralAmount * referralRates[level]) / 10000;
+            if (share > 0 && remaining >= share) {
+                asteroToken.transfer(current, share);
+                emit ReferralBonusPaid(current, downline, share, level + 1);
+                distributed += share;
+                remaining -= share;
+            }
+            current = referrers[current];
+        }
+
+        if (remaining > 0 && projectTreasury != address(0)) {
+            asteroToken.transfer(projectTreasury, remaining);
+            distributed += remaining;
+        }
+        return distributed;
     }
 
     function onDirectStake(address user, uint256 amount) external {
@@ -350,7 +420,9 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         require(!stakes[user].active, "already staking, redeem first");
         _checkMaxStake(user, amount);
 
-        bool makesEffective = amount >= minEffectiveStake;
+        uint256 usdValue = IASTERDAO(address(asteroToken)).getUSDValue(amount);
+        bool makesEffective = usdValue >= minEffectiveUSD;
+
         if (makesEffective) {
             isEffectiveUser[user] = true;
             emit EffectiveUserUpdated(user, true);
@@ -378,11 +450,10 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
 
         uint256 principal = userStake.amount;
 
-        // 软处理 totalStaked，防止因为记账问题导致 revert
         if (totalStaked >= principal) {
             totalStaked -= principal;
         } else {
-            totalStaked = 0;   // 直接清零，避免下溢
+            totalStaked = 0;
         }
 
         uint256 periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
@@ -396,12 +467,10 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         uint256 returnAmount = (principal * returnRate) / 100;
         uint256 burnAmount = principal - returnAmount;
 
-        // 更新状态
         userStake.active = false;
         userStake.amount = 0;
         userStake.autoRewardUntil = 0;
 
-        // 带余额检查的安全转账
         if (returnAmount > 0 && asteroToken.balanceOf(address(this)) >= returnAmount) {
             asteroToken.transfer(user, returnAmount);
         }
@@ -412,50 +481,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
 
         emit Redeemed(user, returnAmount, burnAmount, returnRate);
     }
-// function onRedeemTrigger(address user) external {
-//     require(msg.sender == address(asteroToken), "only token");
-
-//     StakeInfo storage userStake = stakes[user];
-//     uint256 principal = userStake.amount;
-
-//     uint256 periodsStaked;
-//     uint256 returnRate;
-
-//     if (userStake.active && principal > 0) {
-//         // 有活跃质押 → 用实际质押时长
-//         periodsStaked = (block.timestamp - userStake.startTime) / TIME_UNIT;
-        
-//         totalStaked -= principal;
-//         userStake.active = false;
-//         userStake.amount = 0;
-//         userStake.autoRewardUntil = 0;
-
-//     } else {
-//         // 没有活跃质押 → 按新手处理（periodsStaked = 0）
-//         periodsStaked = 0;
-//     }
-
-//     // 统一的赎回规则（无论有没有活跃质押都走这里）
-//     if (periodsStaked <= 10) returnRate = 70;
-//     else if (periodsStaked <= 20) returnRate = 80;
-//     else if (periodsStaked <= 30) returnRate = 90;
-//     else returnRate = 100;
-
-//     uint256 returnAmount = (principal * returnRate) / 100;
-//     uint256 burnAmount = principal - returnAmount;
-
-//     // 返还给用户
-//     if (returnAmount > 0 && asteroToken.balanceOf(address(this)) >= returnAmount) {
-//         asteroToken.transfer(user, returnAmount);
-//     }
-
-//     // 按照赎回规则扣除（销毁）
-//     if (burnAmount > 0 && asteroToken.balanceOf(address(this)) >= burnAmount) {
-//         asteroToken.transfer(BLACKHOLE, burnAmount);
-//     }
-
-//     emit Redeemed(user, returnAmount, burnAmount, returnRate);
-// }
 
     function stake(uint256 amount, address referrer) external payable nonReentrant {
         require(amount > 0, "amount > 0");
@@ -465,7 +490,9 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
         require(asteroToken.transferFrom(msg.sender, address(this), amount), "transferFrom failed");
         _checkMaxStake(msg.sender, amount);
 
-        bool makesEffective = amount >= minEffectiveStake;
+        uint256 usdValue = IASTERDAO(address(asteroToken)).getUSDValue(amount);
+        bool makesEffective = usdValue >= minEffectiveUSD;
+
         if (makesEffective) {
             isEffectiveUser[msg.sender] = true;
             emit EffectiveUserUpdated(msg.sender, true);
@@ -487,83 +514,6 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
 
         totalStaked += amount;
         emit Staked(msg.sender, amount, makesEffective, false);
-    }
-
-    function claimDailyReward() external nonReentrant {
-        StakeInfo storage userStake = stakes[msg.sender];
-        require(userStake.active, "no active stake");
-
-        uint256 rate = getCurrentRate();
-        if (rate == 0) {
-            userStake.lastClaimTime = block.timestamp;
-            return;
-        }
-
-        uint256 periodsPassed = (block.timestamp - userStake.lastClaimTime) / TIME_UNIT;
-        if (periodsPassed == 0) return;
-        periodsPassed = periodsPassed > STAKE_PERIOD_UNITS ? STAKE_PERIOD_UNITS : periodsPassed;
-
-        uint256 grossReward = (userStake.amount * rate * periodsPassed) / 10000;
-
-        uint256 totalReferralRate = 0;
-        for (uint8 i = 0; i < MAX_REFERRAL_LEVELS; i++) {
-            totalReferralRate += referralRates[i];
-        }
-
-        uint256 referralDeducted = (grossReward * totalReferralRate) / 10000;
-        uint256 afterReferral = grossReward - referralDeducted;
-
-        uint256 lpShare = afterReferral * 10 / 100;
-        uint256 nftShare = afterReferral * 2 / 100;
-        uint256 userNet = afterReferral - lpShare - nftShare;
-
-        lpRewardPool += lpShare;
-        nftRewardPool += nftShare;
-
-        uint256 actuallyDistributed = 0;
-        bool wasEffective = isEffectiveUser[msg.sender];
-
-        if (wasEffective && userStake.referrer != address(0)) {
-            actuallyDistributed = _distributeReferralRewards(msg.sender, referralDeducted, userStake.referrer);
-        } else {
-            if (referralDeducted > 0 && projectTreasury != address(0)) {
-                asteroToken.transfer(projectTreasury, referralDeducted);
-                actuallyDistributed = referralDeducted;
-            }
-        }
-
-        if (userNet > 0) {
-            asteroToken.transfer(msg.sender, userNet);
-        }
-
-        userStake.lastClaimTime = block.timestamp;
-
-        emit RewardClaimed(msg.sender, userNet, actuallyDistributed, periodsPassed, wasEffective);
-    }
-
-    function _distributeReferralRewards(
-        address downline,
-        uint256 totalReferralAmount,
-        address startReferrer
-    ) internal returns (uint256 distributed) {
-        address current = startReferrer;
-        uint256 remaining = totalReferralAmount;
-
-        for (uint8 level = 0; level < MAX_REFERRAL_LEVELS && current != address(0); level++) {
-            uint256 share = (totalReferralAmount * referralRates[level]) / 10000;
-            if (share > 0 && remaining >= share) {
-                asteroToken.transfer(current, share);
-                emit ReferralBonusPaid(current, downline, share, level + 1);
-                distributed += share;
-                remaining -= share;
-            }
-            current = referrers[current];
-        }
-
-        if (remaining > 0 && projectTreasury != address(0)) {
-            asteroToken.transfer(projectTreasury, remaining);
-            distributed += remaining;
-        }
     }
 
     function distributeNFTRewards(address nftContract) external onlyOwner {
@@ -598,4 +548,4 @@ contract ASTERDAOStaking is Ownable, ReentrancyGuard {
     }
 
     receive() external payable {}
-} 
+}

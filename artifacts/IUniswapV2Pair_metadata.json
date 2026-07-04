@@ -53,6 +53,19 @@
 				],
 				"stateMutability": "view",
 				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalSupply",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
 			}
 		],
 		"devdoc": {
@@ -68,7 +81,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"contracts/vs3/ASTERDAO_Token.sol": "IUniswapV2Pair"
+			"contracts/vs3/ASETTOKNE.sol": "IUniswapV2Pair"
 		},
 		"evmVersion": "shanghai",
 		"libraries": {},
@@ -77,19 +90,20 @@
 		},
 		"optimizer": {
 			"enabled": true,
-			"runs": 200
+			"runs": 1
 		},
 		"remappings": [
 			":@openzeppelin/contracts/=@openzeppelin/contracts@5.6.0/"
-		]
+		],
+		"viaIR": true
 	},
 	"sources": {
-		"contracts/vs3/ASTERDAO_Token.sol": {
-			"keccak256": "0x5fbca0a0644b1cd6ba1a855e7ef5406c6e2f55870162d46eb81767acccbe3090",
+		"contracts/vs3/ASETTOKNE.sol": {
+			"keccak256": "0x9ae76e9737f33c503d415ded61887a847db53a243e93f68660cf9dd3472cf4a6",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://ec858cf4b1f0141c44d7ebecaedfdba477179ea2a26b235399e13ae87e2a6b64",
-				"dweb:/ipfs/QmdfFEL4h4YgJGkthaFfKaCMLsDy3Ab9GG7xZ7jXtQ73WH"
+				"bzz-raw://3b3d6488ada27388edb514c4399afe4a4dcfc8f50ca79085b24e1cafb1d59590",
+				"dweb:/ipfs/QmfYJ4oRNtPtQ8VvVmKvDhFB65SVvfT6sXypzF7xeX7eB6"
 			]
 		},
 		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v4.9.6/contracts/access/Ownable.sol": {

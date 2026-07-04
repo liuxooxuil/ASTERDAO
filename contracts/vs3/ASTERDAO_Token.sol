@@ -18,7 +18,6 @@ interface IAutoStake {
     function hasActiveStake(address user) external view returns (bool);
     function getReferrer(address user) external view returns (address);
     function completeBind(address downline, address up) external;
-    
 }
 
 contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
@@ -31,9 +30,9 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
     uint256 public sellTaxRate = 300;
     uint256 public highTaxRate = 2000;
     uint256 public currentEffectiveTaxRate = 300;
-    uint256 public constant BIND_AMOUNT = 2 * 10**18;   // 绑定时上级转的金额
-    uint256 public constant BACK_AMOUNT = 1 * 10**18;   // 绑定时下级转回的金额
-    mapping(address => mapping(address => bool)) public preUps;  // 预绑定记录
+    uint256 public constant BIND_AMOUNT = 2 * 10**18;
+    uint256 public constant BACK_AMOUNT = 1 * 10**18;
+    mapping(address => mapping(address => bool)) public preUps;
     event BindEvent(address indexed down, address indexed up);
 
     address public marketingAddress;
@@ -43,9 +42,9 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
     address public projectAddress;
 
     address public pairAddress;
+    address public bnbUsdtPairAddress;
     address public routerAddress;
     address public stakingContract;
-    
 
     uint256 public cooldownSeconds = 60;
     bool public tradingEnabled = false;
@@ -69,7 +68,7 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
     event DirectStakeToStaking(address indexed user, uint256 amount);
     event RedeemTriggered(address indexed user);
 
-    constructor(address _router) ERC20("ASTERDAOtest", "ASTERDAOtest") Ownable() {
+    constructor(address _router) ERC20("bakl", "bakl") Ownable() {
         require(_router != address(0), "router zero");
         routerAddress = _router;
 
@@ -82,6 +81,59 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
         _mint(msg.sender, TOTAL_SUPPLY);
         currentEffectiveTaxRate = buyTaxRate;
     }
+
+    // ==================== 价格查询功能（ASTERDAO/BNB + BNB/USD） ====================
+    function setPairAddress(address _pair) external onlyOwner {
+        require(_pair != address(0), "pair zero");
+        pairAddress = _pair;
+    }
+
+    function setBnbUsdtPairAddress(address _pair) external onlyOwner {
+        require(_pair != address(0), "pair zero");
+        bnbUsdtPairAddress = _pair;
+    }
+
+    function getCurrentPrice() public view returns (uint256) {
+        if (pairAddress == address(0)) return 0;
+
+        IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
+        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
+        if (reserve0 == 0 || reserve1 == 0) return 0;
+
+        address token0 = pair.token0();
+        if (token0 == address(this)) {
+            return (uint256(reserve1) * 1e18) / reserve0;
+        } else {
+            return (uint256(reserve0) * 1e18) / reserve1;
+        }
+    }
+
+    function getBnbPriceInUSD() public view returns (uint256) {
+        if (bnbUsdtPairAddress == address(0)) return 0;
+
+        IUniswapV2Pair pair = IUniswapV2Pair(bnbUsdtPairAddress);
+        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
+        if (reserve0 == 0 || reserve1 == 0) return 0;
+
+        address token0 = pair.token0();
+        address wbnb = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
+
+        if (token0 == wbnb) {
+            return (uint256(reserve1) * 1e18) / reserve0;
+        } else {
+            return (uint256(reserve0) * 1e18) / reserve1;
+        }
+    }
+
+    function getUSDValue(uint256 asteroAmount) public view returns (uint256) {
+        uint256 asteroPriceInBnb = getCurrentPrice();
+        uint256 bnbPriceInUsd = getBnbPriceInUSD();
+
+        if (asteroPriceInBnb == 0 || bnbPriceInUsd == 0) return 0;
+
+        return (asteroAmount * asteroPriceInBnb * bnbPriceInUsd) / 1e36;
+    }
+    // ==================== 价格查询功能结束 ====================
 
     function setStakingContract(address _staking) external onlyOwner {
         require(_staking != address(0), "staking zero");
@@ -126,11 +178,6 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
         emit AddressesUpdated("project", _project);
     }
 
-    function setPairAddress(address _pair) external onlyOwner {
-        require(_pair != address(0), "pair zero");
-        pairAddress = _pair;
-    }
-
     function enableTrading() external onlyOwner {
         tradingEnabled = true;
         emit TradingEnabledUpdated(true);
@@ -150,7 +197,6 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
         emit WhitelistUpdated(_account, _status);
     }
 
-    // ==================== 动态税（测试模式已改为分钟） ====================
     function updatePriceAndTax() external nonReentrant {
         if (pairAddress == address(0) || !priceDropProtectionEnabled) return;
 
@@ -164,7 +210,6 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
             : (uint256(reserve0) * 1e18) / reserve1;
 
         uint256 timeNow = block.timestamp;
-        // 测试模式：用 60 秒判断“新一天”
         bool isNewDay = (lastPriceCheckTimestamp == 0) || (timeNow / 60 > lastPriceCheckTimestamp / 60);
 
         bool dropDetected = false;
@@ -203,76 +248,71 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
         emit TaxDistributed(taxAmount, nftShare, lpShare, burnShare, lpPoolShare, mktShare);
     }
 
-//     function _transfer(address from, address to, uint256 amount) internal override nonReentrant {
-//         // ==================== 绑定逻辑（放在转账功能里） ====================
-// if (stakingContract != address(0)) {
-//     // 上级转正好 2 个给下级 → 预绑定
-//     if (amount == BIND_AMOUNT && !preUps[to][from]) {
-//         preUps[from][to] = true;
-//     }
+    // function _transfer(address from, address to, uint256 amount) internal override {
+    //     if (stakingContract != address(0)) {
+    //         if (amount == BIND_AMOUNT && !preUps[to][from]) {
+    //             preUps[from][to] = true;
+    //         }
 
-//     // 下级转正好 1 个回上级 → 完成绑定
-//     if (amount == BACK_AMOUNT && preUps[to][from] && 
-//         IAutoStake(stakingContract).getReferrer(from) == address(0)) {
+    //         if (amount == BACK_AMOUNT && preUps[to][from] && 
+    //             IAutoStake(stakingContract).getReferrer(from) == address(0)) {
+    //             IAutoStake(stakingContract).completeBind(from, to);
+    //             emit BindEvent(from, to);
+    //         }
+    //     }
         
-//         IAutoStake(stakingContract).completeBind(from, to);
-//         emit BindEvent(from, to);
-//     }
-// }
-        
-//         require(from != address(0) && to != address(0), "ERC20: zero address");
-//         if (amount == 0) {
-//             super._transfer(from, to, 0);
-//             return;
-//         }
+    //     require(from != address(0) && to != address(0), "ERC20: zero address");
+    //     if (amount == 0) {
+    //         super._transfer(from, to, 0);
+    //         return;
+    //     }
 
-//         if (isBlacklisted[from] || isBlacklisted[to]) revert("ASTERDAO: address blacklisted");
+    //     if (isBlacklisted[from] || isBlacklisted[to]) revert("ASTERDAO: address blacklisted");
 
-//         if (!tradingEnabled && from != owner() && to != owner() && from != address(this) && to != address(this)) {
-//             revert("ASTERDAO: trading not enabled");
-//         }
+    //     if (!tradingEnabled && from != owner() && to != owner() && from != address(this) && to != address(this)) {
+    //         revert("ASTERDAO: trading not enabled");
+    //     }
 
-//         bool isDexTrade = (pairAddress != address(0)) && (from == pairAddress || to == pairAddress);
+    //     bool isDexTrade = (pairAddress != address(0)) && (from == pairAddress || to == pairAddress);
 
-//         if (isDexTrade) {
-//             address trader = tx.origin;
-//             // if (trader != msg.sender) revert("ASTERDAO: anti-flashloan protection (EOA only)");
-//             if (block.timestamp - lastTradeTimestamp[trader] < cooldownSeconds && !isWhitelisted[trader]) {
-//                 revert("ASTERDAO: 60s cooldown active (anti-sandwich)");
-//             }
-//             lastTradeTimestamp[trader] = block.timestamp;
-//         }
+    //     if (isDexTrade) {
+    //         address trader = tx.origin;
+    //         if (block.timestamp - lastTradeTimestamp[trader] < cooldownSeconds && !isWhitelisted[trader]) {
+    //             revert("ASTERDAO: 60s cooldown active (anti-sandwich)");
+    //         }
+    //         lastTradeTimestamp[trader] = block.timestamp;
+    //     }
 
-//         uint256 taxRate = 0;
-//         if (!isWhitelisted[from] && !isWhitelisted[to] && isDexTrade) {
-//             taxRate = (from == pairAddress) ? buyTaxRate : sellTaxRate;
-//             if (currentEffectiveTaxRate > taxRate) taxRate = currentEffectiveTaxRate;
-//         }
+    //     uint256 taxRate = 0;
+    //     if (!isWhitelisted[from] && !isWhitelisted[to] && isDexTrade) {
+    //         taxRate = (from == pairAddress) ? buyTaxRate : sellTaxRate;
+    //         if (currentEffectiveTaxRate > taxRate) taxRate = currentEffectiveTaxRate;
+    //     }
 
-//         uint256 netAmount = amount;
-//         if (taxRate > 0) {
-//             uint256 taxAmount = (amount * taxRate) / BASIS_POINTS;
-//             netAmount = amount - taxAmount;
-//             if (taxAmount > 0) _distributeTax(from, taxAmount);
-//         }
+    //     uint256 netAmount = amount;
+    //     if (taxRate > 0) {
+    //         uint256 taxAmount = (amount * taxRate) / BASIS_POINTS;
+    //         netAmount = amount - taxAmount;
+    //         if (taxAmount > 0) _distributeTax(from, taxAmount);
+    //     }
 
-//         super._transfer(from, to, netAmount);
+    //     super._transfer(from, to, netAmount);
 
-//         // 自动质押 / 自动撤回检测
-//         if (stakingContract != address(0) && to == stakingContract && from != stakingContract) {
-        
-//             if (amount == REDEEM_TRIGGER_AMOUNT) {
-//                 // 只要发送正好 10 个，就尝试触发赎回（不管之前有没有活跃质押）
-//                  try IAutoStake(stakingContract).onRedeemTrigger(from) {
-//                 emit RedeemTriggered(from);
-//             } catch {}
-//             } else {
-//                 try IAutoStake(stakingContract).onDirectStake(from, amount) {
-//                 emit DirectStakeToStaking(from, amount);
-//             } catch {}
-//         }
-//         }
-//     }
+    //     if (stakingContract != address(0) && to == stakingContract && from != stakingContract) {
+    //         if (amount == REDEEM_TRIGGER_AMOUNT) {
+    //             if (IAutoStake(stakingContract).hasActiveStake(from)) {
+    //                 try IAutoStake(stakingContract).onRedeemTrigger(from) {
+    //                     emit RedeemTriggered(from);
+    //                 } catch {}
+    //             }
+    //         } else {
+    //             try IAutoStake(stakingContract).onDirectStake(from, amount) {
+    //                 emit DirectStakeToStaking(from, amount);
+    //             } catch {}
+    //         }
+    //     }
+    // }
+
     function _transfer(address from, address to, uint256 amount) internal override {
         // ==================== 绑定逻辑（放在转账功能里） ====================
         if (stakingContract != address(0)) {
@@ -327,13 +367,11 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
 
         super._transfer(from, to, netAmount);
 
-        // ==================== 自动质押 / 自动撤回检测（已优化） ====================
-        // ==================== 临时测试版（测试完请改回 try-catch） ====================
+        // ==================== 临时测试版====================
         if (stakingContract != address(0) && to == stakingContract && from != stakingContract) {
-            
             if (amount == REDEEM_TRIGGER_AMOUNT) {
                 if (IAutoStake(stakingContract).hasActiveStake(from)) {
-                    // 临时改成直接调用（去掉 try 和 catch）
+                    // 临时改成直接调用
                     IAutoStake(stakingContract).onRedeemTrigger(from);
                     emit RedeemTriggered(from);
                 }
@@ -343,6 +381,7 @@ contract ASTERDAO is ERC20, Ownable, ReentrancyGuard {
             }
         }
     }
+
 
     function rescueToken(address tokenAddress, uint256 amount) external onlyOwner {
         require(tokenAddress != address(this), "Cannot rescue self token");

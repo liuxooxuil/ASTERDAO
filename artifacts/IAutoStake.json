@@ -38,10 +38,7 @@
 		"gasEstimates": null,
 		"methodIdentifiers": {
 			"completeBind(address,address)": "aa28fb68",
-			"getReferrer(address)": "4a9fefc7",
-			"hasActiveStake(address)": "69486d29",
-			"onDirectStake(address,uint256)": "9262ebf9",
-			"onRedeemTrigger(address)": "0fbcb433"
+			"getReferrer(address)": "4a9fefc7"
 		}
 	},
 	"abi": [
@@ -80,56 +77,6 @@
 				}
 			],
 			"stateMutability": "view",
-			"type": "function"
-		},
-		{
-			"inputs": [
-				{
-					"internalType": "address",
-					"name": "user",
-					"type": "address"
-				}
-			],
-			"name": "hasActiveStake",
-			"outputs": [
-				{
-					"internalType": "bool",
-					"name": "",
-					"type": "bool"
-				}
-			],
-			"stateMutability": "view",
-			"type": "function"
-		},
-		{
-			"inputs": [
-				{
-					"internalType": "address",
-					"name": "user",
-					"type": "address"
-				},
-				{
-					"internalType": "uint256",
-					"name": "amount",
-					"type": "uint256"
-				}
-			],
-			"name": "onDirectStake",
-			"outputs": [],
-			"stateMutability": "nonpayable",
-			"type": "function"
-		},
-		{
-			"inputs": [
-				{
-					"internalType": "address",
-					"name": "user",
-					"type": "address"
-				}
-			],
-			"name": "onRedeemTrigger",
-			"outputs": [],
-			"stateMutability": "nonpayable",
 			"type": "function"
 		}
 	]
